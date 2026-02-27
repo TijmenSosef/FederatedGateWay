@@ -7,7 +7,7 @@ export const Header: React.FC = () => {
     <header className="app-header">
       <div className="container header-inner">
         <Link to="/" className="brand">
-          Frank<span className="brand-accent">!</span>Gateway
+          <span className="brand-accent">Frank<b>!</b></span>Gateway
         </Link>
 
         <nav className="nav-links">
@@ -19,21 +19,21 @@ export const Header: React.FC = () => {
             Schema Validation
           </NavLink>
 
-          <NavLink to="/config" className={({ isActive }) => (isActive ? 'active' : undefined)}>
-            Config
-          </NavLink>
-          <NavLink to="/routes" className={({ isActive }) => (isActive ? 'active' : undefined)}>
-            Routes
-          </NavLink>
-          <NavLink to="/designer" className={({ isActive }) => (isActive ? 'active' : undefined)}>
-            Designer
-          </NavLink>
-          <NavLink to="/schema" className={({ isActive }) => (isActive ? 'active' : undefined)}>
-            Schema
-          </NavLink>
-          <NavLink to="/gitConfig" className={({ isActive }) => (isActive ? 'active' : undefined)}>
-            Git
-          </NavLink>
+          {/*<NavLink to="/config" className={({ isActive }) => (isActive ? 'active' : undefined)}>*/}
+          {/*  Config*/}
+          {/*</NavLink>*/}
+          {/*<NavLink to="/routes" className={({ isActive }) => (isActive ? 'active' : undefined)}>*/}
+          {/*  Routes*/}
+          {/*</NavLink>*/}
+          {/*<NavLink to="/designer" className={({ isActive }) => (isActive ? 'active' : undefined)}>*/}
+          {/*  Designer*/}
+          {/*</NavLink>*/}
+          {/*<NavLink to="/schema" className={({ isActive }) => (isActive ? 'active' : undefined)}>*/}
+          {/*  Schema*/}
+          {/*</NavLink>*/}
+          {/*<NavLink to="/gitConfig" className={({ isActive }) => (isActive ? 'active' : undefined)}>*/}
+          {/*  Git*/}
+          {/*</NavLink>*/}
         </nav>
 
         <div className="header-actions">
