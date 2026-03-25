@@ -88,7 +88,7 @@ class ErrorResolver {
 
     private resolveOneOfErrors(errors: ErrorObject[], entry: AjvErrorCollection): ResolvedError[] {
         const resolvedErrors: ResolvedError[] = [];
-        console.log(errors, entry);
+        console.log('start oneOf', errors, entry);
 
         for (const error of errors) {
             const schema = error.schema;
@@ -100,30 +100,65 @@ class ErrorResolver {
             }
 
             if (error.params?.passingSchemas != null) {
-                // Multiple branches matched — tell user to pick one
-                const options = this.gatherOneOfOptions(schema);
-
-                console.log(options);
+                // AJV already knows which branches matched — use the indices
+                const passing = error.params.passingSchemas as number[];
+                const allOptions = this.gatherOneOfOptions(schema);
+                const conflicting = passing.map(i => allOptions[i] || ['(unknown variant)']);
 
                 resolvedErrors.push({
-                    message: `${entry.parent}: oneOf — matches multiple variants. Options:\n| ${this.formatOptions(options)}`,
+                    message: `${entry.parent}: oneOf — matches multiple variants, pick one:\n| ${this.formatOptions(conflicting)}`,
                     path: entry.type,
                     errorObject: entry,
                 });
                 continue;
             }
 
-            const options = this.gatherOneOfOptions(schema);
+            // No branch matched — score to find closest
+            const scored = this.matchOneOfErrors(schema, data);
             resolvedErrors.push({
-                message: `${entry.parent}: oneOf — Options:\n| ${this.formatOptions(options)}`,
+                message: `${entry.parent}: oneOf — no variant matched. Closest options:\n| ${this.formatOptions(scored)}`,
                 path: entry.type,
                 errorObject: entry,
             });
         }
 
-        console.log('resolvedErrors:', resolvedErrors)
+        // console.log('resolvedErrors:', resolvedErrors)
 
         return resolvedErrors;
+    }
+
+    private matchOneOfErrors(branch: unknown, data:unknown): string[][] {
+        if (!Array.isArray(branch)) return [];
+
+        const dataKeys = this.isObject(data) ? Object.keys(data) : [];
+        const optionsWithMatches: { opts: string[]; matchCount: number }[] = [];
+
+        let maxHits = 0;
+
+        for (const error of branch) {
+            const opts = this.gatherOneOfOptionsFromBranch(error);
+
+            // see how many opts matches in data
+            const matchCount = opts.filter(opt => dataKeys.includes(opt)).length;
+            console.log('matchCount', matchCount, opts);
+
+            if (matchCount > maxHits){
+                maxHits = matchCount;
+            }
+
+            optionsWithMatches.push({ opts, matchCount });
+        }
+
+        const filteredOptions = optionsWithMatches.filter(
+            a => a.matchCount >= maxHits
+        );
+
+        // Sort by the highest number of matches first
+        filteredOptions.sort(
+            (a, b) => b.matchCount - a.matchCount
+        );
+
+        return filteredOptions.map(item => item.opts);
     }
 
     private formatOptions = (options: string[][]) => {
@@ -136,27 +171,27 @@ class ErrorResolver {
         const options: string[][] = [];
 
         for (const branch of schema) {
-            if (!this.isObject(branch)) continue;
-
-            let subOptions: string[] = [];
-
-            if (Array.isArray(branch.required)) {
-                subOptions = branch.required.map((item) => item.toString());
-                options.push(subOptions);
-                continue;
-            }
-
-            if (this.isObject(branch.properties)) {
-                subOptions = Object.keys(branch.properties);
-                options.push(subOptions);
-                continue;
-            }
-
-            subOptions.push('(unknown variant)');
-
-            options.push(subOptions)
+            options.push(this.gatherOneOfOptionsFromBranch(branch));
         }
         return options;
+    }
+
+    private gatherOneOfOptionsFromBranch(branch: unknown): string[] {
+        if (!this.isObject(branch)) return [];
+
+        let subOptions: string[] = [];
+
+        if (Array.isArray(branch.required)) {
+            subOptions = branch.required.map((item) => item.toString());
+            return subOptions;
+        }
+
+        if (this.isObject(branch.properties)) {
+            subOptions = Object.keys(branch.properties);
+            return subOptions;
+        }
+
+        return ['(unknown variant)'];
     }
 
     private classifyErrors(errors: ErrorObject[]): ClassifiedErrors {
@@ -237,7 +272,7 @@ class ErrorResolver {
             } else if (matchResult === 'vacuous') {
                 resolvedErrors.push(...this.handleVacuousErrors(wrapper, parsed, entry))
             } else {
-                console.log('Unhandled match result:', matchResult);
+                console.log('Unhandled match result:', wrapper);
             }
         });
 
