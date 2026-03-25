@@ -9,7 +9,7 @@ import {GitConfig} from "./pages/gitConfig/GitConfig.tsx";
 import RouteFlow from "./pages/graphflow/RouteFlow.tsx";
 import {ApisixConfigLoader} from "./pages/configloader/configLoader.tsx";
 import { Header } from "./components/Header/Header.tsx";
-import { ConfigManagerProvider } from "./hooks/useConfigManager.tsx";
+import { ConfigManagerProvider } from "./providers/ConfigManagerProvider.tsx";
 
 const Home = () => {
     return (

@@ -1,10 +1,13 @@
+import { useEffect } from 'react';
 import { useConfigManager } from '../../hooks/useConfigManager';
 
 export const RouteDesigner = () => {
-    const { configManager, config } = useConfigManager();
+    const { configManager, config, schema } = useConfigManager();
 
-    console.log('config', config);
-    console.log('schema', configManager.getSchema());
+    useEffect(() => {
+        console.log('config', config);
+        console.log('schema', schema);
+    }, [config, schema]);
 
     return (
         <>
