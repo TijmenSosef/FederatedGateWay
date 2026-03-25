@@ -10,14 +10,10 @@ export interface ResolvedError {
 interface FieldHint {
     field: string;
     type?: string;
-    enum?: string[];
+    possibleOptions?: string[];
     default?: unknown;
     minimum?: number;
     maximum?: number;
-    requiredWhen?: {
-        condition: string;   // e.g. "policy = 'redis'"
-        fields: string;
-    }[];
 }
 
 interface AjvErrorCollection {
@@ -88,14 +84,12 @@ class ErrorResolver {
 
     private resolveOneOfErrors(errors: ErrorObject[], entry: AjvErrorCollection): ResolvedError[] {
         const resolvedErrors: ResolvedError[] = [];
-        console.log('start oneOf', errors, entry);
 
         for (const error of errors) {
             const schema = error.schema;
             const data = error.data;
 
             if (!Array.isArray(schema) || !this.isObject(data)) {
-                console.log('no schema or data')
                 continue;
             }
 
@@ -122,8 +116,6 @@ class ErrorResolver {
             });
         }
 
-        // console.log('resolvedErrors:', resolvedErrors)
-
         return resolvedErrors;
     }
 
@@ -140,7 +132,6 @@ class ErrorResolver {
 
             // see how many opts matches in data
             const matchCount = opts.filter(opt => dataKeys.includes(opt)).length;
-            console.log('matchCount', matchCount, opts);
 
             if (matchCount > maxHits){
                 maxHits = matchCount;
@@ -324,11 +315,6 @@ class ErrorResolver {
                 message: `${entry.parent}: '${field}' is required${defaultNote}, options: ${options.join(', ')}`,
                 path: entry.type,
                 errorObject: entry,
-                hint: {
-                    field,
-                    enum: options,
-                    default: defaultValue,
-                },
             }];
         }
         return [];

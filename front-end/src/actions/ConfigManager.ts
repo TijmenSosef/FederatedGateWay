@@ -1,4 +1,4 @@
-import {type ApisixConfig, SchemaValidator } from './SchemaValidation';
+import {type ApisixConfig, type SchemaCatalog, SchemaValidator} from './SchemaValidation';
 import { type ValidationLog } from './ValidationLogger';
 
 export class ConfigManager {
@@ -21,7 +21,7 @@ export class ConfigManager {
         this.validator.setSchema(schema);
     }
 
-    public getSchema(): any | null {
+    public getSchema(): SchemaCatalog | null {
         return this.validator.getSchema();
     }
 

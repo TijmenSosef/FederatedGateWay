@@ -1,8 +1,11 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { ThemeToggle } from '../ThemeToggle/ThemeToggle';
+import { useConfigManager } from '../../hooks/useConfigManager';
 
 export const Header: React.FC = () => {
+  const { schema, schemaLoading, fetchSchema } = useConfigManager();
+
   return (
     <header className="app-header">
       <div className="container header-inner">
@@ -22,21 +25,22 @@ export const Header: React.FC = () => {
           <NavLink to="/config" className={({ isActive }) => (isActive ? 'active' : undefined)}>
             Config
           </NavLink>
-          {/*<NavLink to="/routes" className={({ isActive }) => (isActive ? 'active' : undefined)}>*/}
-          {/*  Routes*/}
-          {/*</NavLink>*/}
-          {/*<NavLink to="/designer" className={({ isActive }) => (isActive ? 'active' : undefined)}>*/}
-          {/*  Designer*/}
-          {/*</NavLink>*/}
-          {/*<NavLink to="/schema" className={({ isActive }) => (isActive ? 'active' : undefined)}>*/}
-          {/*  Schema*/}
-          {/*</NavLink>*/}
-          {/*<NavLink to="/gitConfig" className={({ isActive }) => (isActive ? 'active' : undefined)}>*/}
-          {/*  Git*/}
-          {/*</NavLink>*/}
+          <NavLink to="/designer" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+            Designer
+          </NavLink>
         </nav>
 
         <div className="header-actions">
+          <div className={schema ? "text-success text-small schema-status" : "text-muted text-small schema-status"}>
+            {schema ? 'Schema Active' : 'Schema Missing'}
+          </div>
+          <button
+            onClick={() => fetchSchema().catch(() => {})}
+            disabled={schemaLoading}
+            className={schemaLoading ? "" : "btn-primary"}
+          >
+            {schemaLoading ? 'Fetching...' : 'Fetch Schema'}
+          </button>
           <ThemeToggle />
         </div>
       </div>

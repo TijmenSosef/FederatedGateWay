@@ -9,6 +9,7 @@ import {GitConfig} from "./pages/gitConfig/GitConfig.tsx";
 import RouteFlow from "./pages/graphflow/RouteFlow.tsx";
 import {ApisixConfigLoader} from "./pages/configloader/configLoader.tsx";
 import { Header } from "./components/Header/Header.tsx";
+import { ConfigManagerProvider } from "./hooks/useConfigManager.tsx";
 
 const Home = () => {
     return (
@@ -21,20 +22,22 @@ const Home = () => {
 
 function App() {
     return (
-        <>
-            <Header />
-            <Routes>
-                <Route path="/" element={<Home/>} />
-                <Route path="/dashboard" element={<Dashboard/>} />
-                <Route path="/config" element={<Config/>} />
-                <Route path="/routes" element={<RouteOverview/>} />
-                <Route path="/schema" element={<SchemaPage/>} />
-                <Route path="/designer" element={<RouteDesigner/>} />
-                <Route path="/gitConfig" element={<GitConfig/>} />
-                <Route path="/flow" element={<RouteFlow/>} />
-                <Route path="/loadConfig" element={<ApisixConfigLoader/>} />
-            </Routes>
-        </>
+        <ConfigManagerProvider>
+            <>
+                <Header />
+                <Routes>
+                    <Route path="/" element={<Home/>} />
+                    <Route path="/dashboard" element={<Dashboard/>} />
+                    <Route path="/config" element={<Config/>} />
+                    <Route path="/routes" element={<RouteOverview/>} />
+                    <Route path="/schema" element={<SchemaPage/>} />
+                    <Route path="/designer" element={<RouteDesigner/>} />
+                    <Route path="/gitConfig" element={<GitConfig/>} />
+                    <Route path="/flow" element={<RouteFlow/>} />
+                    <Route path="/loadConfig" element={<ApisixConfigLoader/>} />
+                </Routes>
+            </>
+        </ConfigManagerProvider>
     )
 }
 
