@@ -34,7 +34,7 @@ function buildYamlObject(values: Record<string, unknown>, fields: SchemaField[])
 
 export const RouteDesigner = () => {
 
-    const category = 'upstream';
+    const category = 'route';
 
     const {configManager, schema, schemaLoading} = useConfigManager();
     const [values, setValues] = useState<Record<string, unknown>>({});

@@ -4,6 +4,7 @@ export interface ResolvedError {
     message: string;
     path: string;
     errorObject?: AjvErrorCollection;
+    sourceError?: ErrorObject;
     hint?: FieldHint;
 }
 
@@ -101,8 +102,9 @@ class ErrorResolver {
 
                 resolvedErrors.push({
                     message: `${entry.parent}: ${error.keyword} — matches multiple variants, pick one:\n| ${this.formatOptions(conflicting)}`,
-                    path: entry.type,
+                    path: this.buildResolvedPath(entry, this.getExactPath(error)),
                     errorObject: entry,
+                    sourceError: error,
                 });
                 continue;
             }
@@ -111,8 +113,9 @@ class ErrorResolver {
             const scored = this.matchOneOfErrors(schema, data);
             resolvedErrors.push({
                 message: `${entry.parent}: ${error.keyword} — no variant matched. Closest options:\n| ${this.formatOptions(scored)}`,
-                path: entry.type,
+                path: this.buildResolvedPath(entry, this.getExactPath(error)),
                 errorObject: entry,
+                sourceError: error,
             });
         }
 
@@ -256,8 +259,9 @@ class ErrorResolver {
                 ownedLeaves.forEach(leaf => {
                     resolvedErrors.push({
                         message: `${entry.parent}: when ${conditionString}, ${this.formatDirectError(leaf)}`,
-                        path: entry.type,
+                        path: this.buildResolvedPath(entry, this.getExactPath(leaf)),
                         errorObject: entry,
+                        sourceError: leaf,
                     });
                 });
             } else if (matchResult === 'vacuous') {
@@ -283,6 +287,8 @@ class ErrorResolver {
         if (this.isObject(schema) && this.isObject(schema.properties) && field in schema.properties) {
 
             const propDef = schema.properties[field];
+            const relPath = wrapper.instancePath ? `${wrapper.instancePath}/${field}` : `/${field}`;
+            const exactPath = this.buildResolvedPath(entry, relPath);
 
             if (!this.isObject(propDef)) return [];
 
@@ -294,8 +300,9 @@ class ErrorResolver {
             } else {
                 return [{
                     message: `${entry.parent}: '${field}' could not find any constraint properties.`,
-                    path: entry.type,
+                    path: exactPath,
                     errorObject: entry,
+                    sourceError: wrapper,
                 }];
             }
 
@@ -303,8 +310,9 @@ class ErrorResolver {
             if (options.length === 0) {
                 return [{
                     message: `${entry.parent}: '${field}' is required`,
-                    path: entry.type,
+                    path: exactPath,
                     errorObject: entry,
+                    sourceError: wrapper,
                 }];
             }
 
@@ -313,8 +321,9 @@ class ErrorResolver {
 
             return [{
                 message: `${entry.parent}: '${field}' is required${defaultNote}, options: ${options.join(', ')}`,
-                path: entry.type,
+                path: exactPath,
                 errorObject: entry,
+                sourceError: wrapper,
             }];
         }
         return [];
@@ -379,14 +388,40 @@ class ErrorResolver {
         return null;
     }
 
+    private getExactPath(err: ErrorObject): string {
+        const base = err.instancePath;
+        switch (err.keyword) {
+            case 'required': {
+                const field = err.params?.missingProperty ?? '';
+                return base ? `${base}/${field}` : `/${field}`;
+            }
+            case 'additionalProperties': {
+                const field = err.params?.additionalProperty ?? '';
+                return base ? `${base}/${field}` : `/${field}`;
+            }
+            default:
+                return base;
+        }
+    }
+
+    // If entry.type is itself a real path (e.g. /routes/0/plugins/limit-count)
+    // Otherwise fall back to exactPath or the entry type as a label.
+    private buildResolvedPath(entry: AjvErrorCollection, exactPath: string): string {
+        if (entry.type.startsWith('/')) {
+            return `${entry.type}${exactPath}`;
+        }
+        return exactPath || entry.type;
+    }
+
     private resolveDirectErrors(
         errors: ErrorObject[],
         entry: AjvErrorCollection
     ): ResolvedError[] {
         return errors.map(err => ({
             message: `${entry.parent}: ${this.formatDirectError(err)}`,
-            path: entry.type,
+            path: this.buildResolvedPath(entry, this.getExactPath(err)),
             errorObject: entry,
+            sourceError: err,
         }));
     }
 

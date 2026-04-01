@@ -112,7 +112,7 @@ export class SchemaValidator {
         // Resolve all collected AJV errors and feed them into the logger
         const resolved = this.errorResolver.handleErrors();
         for (const err of resolved) {
-            this.logger.add('error', err.message, err.path);
+            this.logger.add('error', err.message, err.path, err.sourceError);
         }
 
         return this.logger.getLogs();
@@ -213,7 +213,8 @@ export class SchemaValidator {
         }
 
         for (const err of errorResolver.handleErrors()) {
-            logger.add('error', err.message, err.path);
+            const fullPath = err.path.startsWith('/') ? `${categoryName}${err.path}` : err.path;
+            logger.add('error', err.message, fullPath, err.sourceError);
         }
 
         return logger.getLogs();
