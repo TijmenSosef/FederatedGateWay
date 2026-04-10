@@ -14,10 +14,12 @@ import java.util.regex.Pattern;
 public class MetricsService {
 
     private final ApisixClient apisixClient;
+    private final PrometheusClient prometheusClient;
     private final ObjectMapper objectMapper;
 
-    public MetricsService(ApisixClient apisixClient, ObjectMapper objectMapper) {
+    public MetricsService(ApisixClient apisixClient, PrometheusClient prometheusClient, ObjectMapper objectMapper) {
         this.apisixClient = apisixClient;
+        this.prometheusClient = prometheusClient;
         this.objectMapper = objectMapper;
     }
 
@@ -39,6 +41,16 @@ public class MetricsService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse live upstreams", e);
         }
+    }
+
+    public String prometheusQuery(String query) {
+        return prometheusClient.query(query);
+    }
+
+    public String prometheusRangeQuery(String query) {
+        long now = System.currentTimeMillis() / 1000;
+        long start = now - 3600;
+        return prometheusClient.rangeQuery(query, start, now, "60");
     }
 
     public String getPrometheusRaw() {

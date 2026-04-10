@@ -15,6 +15,16 @@ public class MetricsController {
         this.metricsService = metricsService;
     }
 
+    @GetMapping("/prom-query")
+    public String prometheusQuery(@RequestParam String query) {
+        return metricsService.prometheusQuery(query);
+    }
+
+    @GetMapping("/prom-range")
+    public String prometheusRangeQuery(@RequestParam String query) {
+        return metricsService.prometheusRangeQuery(query);
+    }
+
     @GetMapping("/health")
     public String getHealthcheck() {
         return metricsService.getHealthcheck();
