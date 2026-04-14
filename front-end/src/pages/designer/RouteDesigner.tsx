@@ -40,13 +40,13 @@ export const RouteDesigner = () => {
     const {configManager, schema, schemaLoading, config, setConfig} = useConfigManager();
     const [values, setValues] = useState<Record<string, unknown>>({});
 
-    const [catagoryValMap, setCatagoryVal] = useState<Record<string, Record<string, unknown>>>({});
+    const [categoryValMap, setCategoryValMap] = useState<Record<string, Record<string, unknown>>>({});
 
     const handleCategorySwitch = useCallback((newCategory: string) => {
-        setCatagoryVal(prev => ({ ...prev, [category]: values }));
-        setValues(catagoryValMap[newCategory] ?? {});
+        setCategoryValMap(prev => ({ ...prev, [category]: values }));
+        setValues(categoryValMap[newCategory] ?? {});
         setCategory(newCategory);
-    }, [category, values, catagoryValMap]);
+    }, [category, values, categoryValMap]);
 
     const handleChange = useCallback((name: string, value: unknown) => {
         setValues(prev => {
@@ -68,7 +68,7 @@ export const RouteDesigner = () => {
     const yamlPreview = useMemo(() => {
         const obj = buildYamlObject(values, fields);
 
-        // if nothign is set
+        // if nothing is set
         if (Object.keys(obj).length === 0) return '# Fill in a field...';
 
         return dump(obj, {indent: 2, noRefs: true, sortKeys: true});
