@@ -427,6 +427,11 @@ interface SchemaFormRendererProps {
 }
 
 export function SchemaFormRenderer({fields, values, onChange, overrides, searchTerm}: SchemaFormRendererProps) {
+
+    if (!values) {
+        return
+    }
+
     const visibleFields = searchTerm
         ? fields.filter(f => fieldMatchesSearch(f, searchTerm, values[f.name]))
         : fields;
