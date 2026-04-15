@@ -191,7 +191,7 @@ export const Dashboard: React.FC = () => {
                 </div>
                 <div className={`card ${styles.fullWidthCard}`}>
                     <div className="card-header">HTTP Status Codes</div>
-                    <div className={`text-small text-muted ${styles.emptyHint}`}>via Prometheus · <code>sum by (code) (apisix_http_status)</code></div>
+                    <div className={`text-small text-muted ${styles.emptyHint}`}>via Prometheus: sum by (code) (apisix_http_status)</div>
                     {httpStatusFetch.loading && <div className={`text-small text-muted ${styles.emptyHint}`}>Loading...</div>}
                     {httpStatusFetch.error && <div className={`text-small text-muted ${styles.emptyHint}`}>Prometheus unavailable</div>}
                     {httpStatusFetch.data?.data?.result?.length === 0 && (
@@ -227,7 +227,7 @@ export const Dashboard: React.FC = () => {
                 </div>
                 <div className={`card ${styles.fullWidthCard}`}>
                     <div className="card-header">HTTP Status Codes — Last Hour</div>
-                    <div className={`text-small text-muted ${styles.emptyHint}`}>via Prometheus · <code>sum by (code) (apisix_http_status)</code> · 1 min resolution</div>
+                    <div className={`text-small text-muted ${styles.emptyHint}`}>Via Prometheus: sum by (code) (apisix_http_status) 1 min resolution</div>
                     {httpStatusRangeFetch.loading && <div className={`text-small text-muted ${styles.emptyHint}`}>Loading...</div>}
                     {httpStatusRangeFetch.error && <div className={`text-small text-muted ${styles.emptyHint}`}>Prometheus unavailable</div>}
                     {httpStatusRangeFetch.data?.data?.result?.length === 0 && (
