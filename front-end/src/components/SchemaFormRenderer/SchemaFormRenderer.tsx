@@ -451,7 +451,25 @@ export function SchemaFormRenderer({fields, values, onChange, overrides, searchT
     const visibleFields = searchTerm
         ? fields.filter(f => fieldMatchesSearch(f, searchTerm, values[f.name]))
         : fields;
-    const sortedFields = visibleFields.sort((a, b) => a.name.localeCompare(b.name));
+
+    const priorityList = ['id', 'uri', 'upstream_id'];
+
+    const sortedFields = visibleFields.sort((a, b) => {
+        const indexA = priorityList.indexOf(a.name);
+        const indexB = priorityList.indexOf(b.name);
+
+        // Sort them according to their order in the priorityList
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+
+        // a is priority item, move it to the top
+        if (indexA !== -1) return -1;
+
+        // b is priority item, move it to the top
+        if (indexB !== -1) return 1;
+
+        // sort them alphabetically
+        return a.name.localeCompare(b.name);
+    });
 
     return (
         <>
@@ -460,7 +478,7 @@ export function SchemaFormRenderer({fields, values, onChange, overrides, searchT
                 return (
                     <div key={field.name} className={styles.fieldGroup}>
                         <label htmlFor={field.name} className={styles.fieldLabel}>
-                            {field.name}
+                            {field.name} {priorityList.includes(field.name) && <span className={"text-muted"}> - Prio sort</span>}
                             {field.required && <span className={styles.required}>*</span>}
                         </label>
                         <Component field={field} value={values?.[field.name]} onChange={onChange} searchTerm={searchTerm}/>
