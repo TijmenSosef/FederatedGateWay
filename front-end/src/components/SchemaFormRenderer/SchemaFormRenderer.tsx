@@ -141,6 +141,12 @@ function ArrayTextInput({field, value, onChange}: FieldProps) {
     function handleDelete(id: number) {
         const updated = entries.filter(entry => entry.id !== id);
         setEntries(updated);
+
+        if (updated.length === 0) {
+            onChange?.(field.name, undefined);
+            return
+        }
+
         onChange?.(field.name, updated.map(e => e.value));
     }
 
@@ -219,6 +225,10 @@ function MapField({field, onChange}: FieldProps) {
     if (field.type !== 'map') return null;
 
     function emit(updated: {id: number; key: string; val: string}[]) {
+        if (updated.length === 0) {
+            onChange?.(field.name, undefined)
+            return;
+        }
         onChange?.(field.name, Object.fromEntries(updated.map(e => [e.key, e.val])));
     }
 
@@ -319,6 +329,10 @@ function PluginField({ field, value, onChange, searchTerm }: FieldProps) {
 
     // update the nested values
     function emitAll(plugins: string[], values: Record<string, Record<string, unknown>>) {
+        if (plugins.length === 0) {
+            onChange?.(field.name, undefined);
+            return;
+        }
         onChange?.(field.name, Object.fromEntries(plugins.map(name => [name, values[name] ?? {}])));
     }
 
@@ -333,6 +347,8 @@ function PluginField({ field, value, onChange, searchTerm }: FieldProps) {
         const updated = activePlugins.filter(p => p !== name);
         const updatedValues = { ...pluginValues };
         delete updatedValues[name];
+
+
         setActivePlugins(updated);
         setPluginValues(updatedValues);
         emitAll(updated, updatedValues);
