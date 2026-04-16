@@ -177,48 +177,48 @@ export const ConfigEditor = ({
 
                     {/* Editor layers (stacked via grid-area) */}
                     <div className={styles.editorLayers}>
-                    {/* Hidden pre to provide dimensions */}
-                    <pre className={styles.editorBase}>
-                        {configText + (configText.endsWith('\n') ? ' ' : '\n')}
-                    </pre>
+                        {/* Hidden pre to provide dimensions */}
+                        <pre className={styles.editorBase}>
+                            {configText + (configText.endsWith('\n') ? ' ' : '\n')}
+                        </pre>
 
-                    {/* Overlay for highlights and whitespace */}
-                    <div className={styles.editorOverlay}>
-                        {configText.split('\n').map((line, index) => {
-                            const isErrorLine = errorLines.has(index + 1);
-                            const lineClass = isErrorLine ? styles.errorLineBg : '';
+                        {/* Overlay for highlights and whitespace */}
+                        <div className={styles.editorOverlay}>
+                            {configText.split('\n').map((line, index) => {
+                                const isErrorLine = errorLines.has(index + 1);
+                                const lineClass = isErrorLine ? styles.errorLineBg : '';
 
-                            let content = '';
-                            if (showWhitespace) {
-                                const leadingSpaces = line.match(/^ */)?.[0].length || 0;
-                                if (leadingSpaces > 0) {
-                                    for (let i = 0; i < line.length; i++) {
-                                        if (i < leadingSpaces) {
-                                            content += (i % 2 === 0) ? '·' : '│';
-                                        } else if (line[i] === ' ') {
-                                            content += '·';
-                                        } else {
-                                            content += ' ';
+                                let content = '';
+                                if (showWhitespace) {
+                                    const leadingSpaces = line.match(/^ */)?.[0].length || 0;
+                                    if (leadingSpaces > 0) {
+                                        for (let i = 0; i < line.length; i++) {
+                                            if (i < leadingSpaces) {
+                                                content += (i % 2 === 0) ? '·' : '│';
+                                            } else if (line[i] === ' ') {
+                                                content += '·';
+                                            } else {
+                                                content += ' ';
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            return (
-                                <div key={index} className={`${styles.lineOverlay} ${lineClass}`}>
-                                    <span className={styles.overlayContent}>{content}</span>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                return (
+                                    <div key={index} className={`${styles.lineOverlay} ${lineClass}`}>
+                                        <span className={styles.overlayContent}>{content}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
 
-                    {/* Actual Textarea */}
-                    <textarea
-                        value={configText}
-                        onChange={(e) => onConfigChange(e.target.value)}
-                        spellCheck={false}
-                        className={styles.editorTextarea}
-                    />
+                        {/* Actual Textarea */}
+                        <textarea
+                            value={configText}
+                            onChange={(e) => onConfigChange(e.target.value)}
+                            spellCheck={false}
+                            className={styles.editorTextarea}
+                        />
                     </div>
 
                     {!configText && (
