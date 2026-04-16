@@ -2,7 +2,7 @@ import {Routes, Route} from 'react-router-dom';
 import {Dashboard} from "./components/Dashboard/Dashboard.tsx";
 import {Config} from "./pages/config/Config.tsx";
 import {RouteDesigner} from "./pages/designer/RouteDesigner.tsx";
-import {ApisixConfigLoader} from "./pages/configloader/configLoader.tsx";
+import ApisixConfigLoader from "./pages/configloader/configLoader.tsx";
 import { Header } from "./components/Header/Header.tsx";
 import { ConfigManagerProvider } from "./providers/ConfigManagerProvider.tsx";
 
