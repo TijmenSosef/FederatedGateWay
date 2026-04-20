@@ -2,6 +2,9 @@ import {useCallback, useMemo, useState} from 'react';
 import {useConfigManager} from '../../hooks/useConfigManager';
 import {SchemaFormGenerator, type SchemaField} from '../../actions/SchemaFormGenerator';
 import {SchemaFormRenderer} from '../../components/SchemaFormRenderer/SchemaFormRenderer';
+import {IdField} from '../../components/SchemaFormRenderer/IdField/IdField';
+import {useDesignerSettings} from '../../hooks/useDesignerSettings';
+import {DesignerSettings} from './DesignerSettings';
 import {dump} from 'js-yaml';
 import type {ResolvedError} from '../../actions/ErrorResolver';
 import styles from './RouteDesigner.module.css';
@@ -36,6 +39,7 @@ export const RouteDesigner = () => {
 
     const [category, setCategory] = useState<string>('route');
     const [added, setAdded] = useState<boolean>(false);
+    const [designerSettings, setDesignerSettings] = useDesignerSettings();
 
     const {configManager, schema, schemaLoading, config, setConfig} = useConfigManager();
     const [values, setValues] = useState<Record<string, unknown>>({});
@@ -111,7 +115,9 @@ export const RouteDesigner = () => {
     if (schemaLoading) return <div>Loading....</div>;
     if (!configManager || !schema) return <div>Config manager not available</div>;
 
-    console.log(resolvedErrors)
+
+    const priorityList = designerSettings.getPriorityList(category);
+    const overrideSettings = designerSettings.getMergedOverrides(category);
 
     return (
         <div className="container">
@@ -127,6 +133,9 @@ export const RouteDesigner = () => {
                         <option value="service">Services</option>
                         <option value="consumer">Consumers</option>
                         <option value="global_rule">global rules</option>
+                        <option value="ssl">ssl</option>
+                        <option value="plugin_config">plugin config</option>
+
                     </select>
                 </div>
             </div>
@@ -141,6 +150,14 @@ export const RouteDesigner = () => {
 
                     {/* Validation Results */}
                     <DesignerErrorLogs resolvedErrors={resolvedErrors} onAction={handleErrorAction} />
+
+                    {/* Settings */}
+                    <DesignerSettings
+                        category={category}
+                        fields={fields}
+                        settings={designerSettings}
+                        onSettingsChange={setDesignerSettings}
+                    />
                 </div>
 
                 {/* Form Fields */}
@@ -168,6 +185,9 @@ export const RouteDesigner = () => {
                             values={values}
                             onChange={handleChange}
                             searchTerm={search}
+                            priorityList={priorityList}
+                            overrides={{ id: IdField }}
+                            overrideSettings={overrideSettings}
                         />
                     </form>
                 </div>
