@@ -10,6 +10,7 @@ export interface FieldProps {
     value?: unknown;
     onChange?: (name: string, value: unknown) => void;
     searchTerm?: string;
+    settings?: unknown;
 }
 
 // --- field components ---
@@ -294,7 +295,13 @@ function ObjectField({field, value, onChange, searchTerm}: FieldProps) {
             {field.description &&
                 <div className={styles.selectDescription}>{field.description}</div>
             }
-            <SchemaFormRenderer fields={field.fields} values={objValue} onChange={handleNestedChange} searchTerm={searchTerm}/>
+            <SchemaFormRenderer
+                fields={field.fields}
+                values={objValue}
+                onChange={handleNestedChange}
+                searchTerm={searchTerm}
+
+            />
         </CollapsibleSection>
     );
 }
@@ -439,10 +446,12 @@ interface SchemaFormRendererProps {
     values?: Record<string, unknown>;
     onChange?: (name: string, value: unknown) => void;
     overrides?: Record<string, ComponentType<FieldProps>>;
+    overrideSettings?: Record<string, unknown>;
     searchTerm?: string;
+    priorityList?: string[];
 }
 
-export function SchemaFormRenderer({fields, values, onChange, overrides, searchTerm}: SchemaFormRendererProps) {
+export function SchemaFormRenderer({fields, values, onChange, overrides, overrideSettings, searchTerm, priorityList = []}: SchemaFormRendererProps) {
 
     if (!values) {
         return
@@ -451,8 +460,6 @@ export function SchemaFormRenderer({fields, values, onChange, overrides, searchT
     const visibleFields = searchTerm
         ? fields.filter(f => fieldMatchesSearch(f, searchTerm, values[f.name]))
         : fields;
-
-    const priorityList = ['id', 'uri', 'upstream_id'];
 
     const sortedFields = visibleFields.sort((a, b) => {
         const indexA = priorityList.indexOf(a.name);
@@ -474,14 +481,16 @@ export function SchemaFormRenderer({fields, values, onChange, overrides, searchT
     return (
         <>
             {sortedFields.map(field => {
-                const Component = overrides?.[field.name] ?? fieldComponents[field.type] ?? TextField;
+                const override = overrides?.[field.name];
+                const Component = override ?? fieldComponents[field.type] ?? TextField;
+                const settings = override ? overrideSettings?.[field.name] : undefined;
                 return (
                     <div key={field.name} className={styles.fieldGroup}>
                         <label htmlFor={field.name} className={styles.fieldLabel}>
                             {field.name} {priorityList.includes(field.name) && <span className={"text-muted"}> - Prio sort</span>}
                             {field.required && <span className={styles.required}>*</span>}
                         </label>
-                        <Component field={field} value={values?.[field.name]} onChange={onChange} searchTerm={searchTerm}/>
+                        <Component field={field} value={values?.[field.name]} onChange={onChange} searchTerm={searchTerm} settings={settings}/>
                     </div>
                 );
             })}
