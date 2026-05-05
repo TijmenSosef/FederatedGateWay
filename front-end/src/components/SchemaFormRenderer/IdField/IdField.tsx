@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { FieldProps } from "../SchemaFormRenderer";
 import styles from "./IdField.module.css";
 
@@ -141,7 +141,29 @@ function TemplatedIdField({
         setSegments(parseIdValue(value, parts));
     }
 
-    console.log(segments)
+    const segmentsRef = useRef(segments);
+    useLayoutEffect(() => {
+        segmentsRef.current = segments;
+    });
+
+    useEffect(() => {
+        const current = segmentsRef.current;
+        const updated = { ...current };
+        let changed = false;
+        for (const part of parts) {
+            if (part.kind !== 'placeholder') continue;
+            const opts = placeHolderOptions[part.name] ?? [];
+            if (opts.length > 0 && updated[part.name] && !opts.includes(updated[part.name])) {
+                updated[part.name] = '';
+                changed = true;
+            }
+        }
+        if (changed) {
+            setSegments(updated);
+            const joined = assembleValue(parts, updated);
+            onChange?.(field.name, joined || undefined);
+        }
+    }, [placeHolderOptions, parts, onChange, field.name]);
 
     function handleSegmentChange(name: string, val: string) {
         const next = { ...segments, [name]: val };
