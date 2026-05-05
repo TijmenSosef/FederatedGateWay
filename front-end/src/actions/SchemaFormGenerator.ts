@@ -13,7 +13,8 @@ interface FieldBase {
 export interface TextField extends FieldBase { type: 'text'; pattern?: string }
 export interface NumberField extends FieldBase { type: 'number'; minimum?: number; maximum?: number }
 export interface CheckboxField extends FieldBase { type: 'checkbox' }
-export interface SelectField extends FieldBase { type: 'select'; options: string[] }
+export interface SelectOption { label: string; value: unknown }
+export interface SelectField extends FieldBase { type: 'select'; options: SelectOption[] }
 export interface ArrayField extends FieldBase { type: 'array'; schema: JsonSchema }
 export interface ObjectArrayField extends FieldBase { type: 'object-array'; itemFields: SchemaField[] }
 export interface ObjectField extends FieldBase { type: 'object'; fields: SchemaField[] }
@@ -105,7 +106,7 @@ export class SchemaFormGenerator {
     }
 
     private buildSelectField(base: FieldBase, options: unknown[]): SelectField {
-        return { ...base, type: 'select', options: options.map(String) };
+        return { ...base, type: 'select', options: options.map(v => ({ label: String(v), value: v })) };
     }
 
     private buildCheckboxField(base: FieldBase): CheckboxField {

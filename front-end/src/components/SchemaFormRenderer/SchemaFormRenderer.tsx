@@ -91,14 +91,27 @@ function SelectField({field, value, onChange}: FieldProps) {
     const defaultLabel = field.defaultValue != null
         ? `-- select (default: ${field.defaultValue}) --`
         : '-- select --';
+
+    const selectedIndex = field.options.findIndex(opt => opt.value === value);
+    const selectValue = selectedIndex !== -1 ? String(selectedIndex) : '';
+
+    function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
+        const idx = e.target.value;
+        if (idx === '') {
+            onChange?.(field.name, undefined);
+            return;
+        }
+        onChange?.(field.name, field.options[Number(idx)].value);
+    }
+
     return (
         <>
             <div className={styles.selectDescription}>{placeholder}</div>
             <select id={field.name} name={field.name} required={field.required}
-                    value={(value as string) ?? ''}
-                    onChange={e => onChange?.(field.name, e.target.value || undefined)}>
+                    value={selectValue}
+                    onChange={handleChange}>
                 <option value="">{defaultLabel}</option>
-                {field.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                {field.options.map((opt, idx) => <option key={opt.label} value={idx}>{opt.label}</option>)}
             </select>
         </>
     );
