@@ -1,5 +1,7 @@
 package wearefrank.backend.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -16,9 +18,11 @@ public class PrometheusClient {
     private static final String BASE_URL = "http://localhost:9090";
 
     private final HttpClient httpClient;
+    private final ObjectMapper objectMapper;
 
-    public PrometheusClient(HttpClient httpClient) {
+    public PrometheusClient(HttpClient httpClient, ObjectMapper objectMapper) {
         this.httpClient = httpClient;
+        this.objectMapper = objectMapper;
     }
 
     public String query(String promql) {
@@ -33,6 +37,17 @@ public class PrometheusClient {
                 + "&end=" + endEpoch
                 + "&step=" + step;
         return get(url);
+    }
+
+    public long getTsdbMinTime() {
+        try {
+            String body = get(BASE_URL + "/api/v1/status/tsdb");
+            JsonNode root = objectMapper.readTree(body);
+            // minTime is in milliseconds — convert to seconds
+            return root.path("data").path("headStats").path("minTime").asLong() / 1000;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch Prometheus TSDB status: " + e.getMessage(), e);
+        }
     }
 
     private String get(String url) {
