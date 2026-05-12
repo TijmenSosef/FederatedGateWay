@@ -179,7 +179,7 @@ export const Dashboard: React.FC = () => {
 
             <div className={styles.grid}>
                 <div className="card">
-                    <div className="card-header">APISIX Status</div>
+                    <div className="card-header">APISIX Status</div> {/* Card title */}
                     <div className={styles.statusRow}>
                         <span className={`${styles.statusDot} ${statusDotClass}`} />
                         {controlStatus === 'checking' && 'Checking...'}
@@ -219,7 +219,7 @@ export const Dashboard: React.FC = () => {
                 </div>
 
                 <div className="card">
-                    <div className="card-header">Live Routes</div>
+                    <div className="card-header">Live Routes</div> {/* Card title */}
                     {/* loading */}
                     {liveRoutesFetch.loading && <div className={`text-small text-muted ${styles.emptyHint}`}>Loading...</div>}
                     {/* Unavailable */}
@@ -241,7 +241,7 @@ export const Dashboard: React.FC = () => {
                 </div>
 
                 <div className="card">
-                    <div className="card-header">Live Upstreams</div>
+                    <div className="card-header">Live Upstreams</div> {/* Card title */}
                     {liveUpstreamsFetch.loading && <div className={`text-small text-muted ${styles.emptyHint}`}>Loading...</div>}
                     {liveUpstreamsFetch.error && <div className={`text-small text-muted ${styles.emptyHint}`}>Unavailable</div>}
                     {liveUpstreamsFetch.data && liveUpstreamsFetch.data.length === 0 && (
@@ -263,7 +263,7 @@ export const Dashboard: React.FC = () => {
                     ))}
                 </div>
                 <div className={`card ${styles.fullWidthCard}`}>
-                    <div className="card-header">HTTP Status Codes — All Time</div>
+                    <div className="card-header">HTTP Status Codes — All Time</div> {/* Card title */}
                     <RangeToggle value={barRangeLabel} onChange={setBarRangeLabel} />
                     <div className={`text-small text-muted ${styles.emptyHint}`}>{barSubtitle}</div>
                     <div className={styles.chartArea}>
@@ -285,7 +285,7 @@ export const Dashboard: React.FC = () => {
                     </div>
                 </div>
                 <div className={`card ${styles.fullWidthCard}`}>
-                    <div className="card-header">Status Codes per Route</div>
+                    <div className="card-header">Status Codes per Route</div> {/* Card title */}
                     <RangeToggle value={routeTableRangeLabel} onChange={setRouteTableRangeLabel} />
                     <div className={`text-small text-muted ${styles.emptyHint}`}>{routeTableSubtitle}</div>
                     <div className={`${styles.chartArea} ${styles.chartAreaTable}`}>
