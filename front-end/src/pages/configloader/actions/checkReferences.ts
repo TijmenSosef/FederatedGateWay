@@ -16,6 +16,43 @@ function getEntries(config: ApisixConfig, category: string): Record<string, unkn
     return Array.isArray(raw) ? (raw as Record<string, unknown>[]) : [];
 }
 
+const DUPLICATE_CHECK_CATEGORIES: { cat: string; idField: string }[] = [
+    { cat: 'route',         idField: 'id' },
+    { cat: 'upstream',      idField: 'id' },
+    { cat: 'service',       idField: 'id' },
+    { cat: 'consumer',      idField: 'username' },
+    { cat: 'global_rule',   idField: 'id' },
+    { cat: 'ssl',           idField: 'id' },
+    { cat: 'plugin_config', idField: 'id' },
+    { cat: 'stream_route',  idField: 'id' },
+];
+
+function checkDuplicateIds(config: ApisixConfig): ValidationLog[] {
+    const logs: ValidationLog[] = [];
+
+    for (const { cat, idField } of DUPLICATE_CHECK_CATEGORIES) {
+        const entries = getEntries(config, cat);
+        const seen = new Map<string, number>();
+
+        for (const entry of entries) {
+            const id = entry[idField];
+            if (typeof id !== 'string') continue;
+            seen.set(id, (seen.get(id) ?? 0) + 1);
+        }
+
+        for (const [id, count] of seen) {
+            if (count < 2) continue;
+            logs.push(new ValidationLog(
+                'error',
+                `Duplicate ${cat} ${idField} "${id}" (appears ${count} times)`,
+                `/${cat}s`,
+            ));
+        }
+    }
+
+    return logs;
+}
+
 export function checkReferences(config: ApisixConfig): ValidationLog[] {
     const logs: ValidationLog[] = [];
 
@@ -59,6 +96,8 @@ export function checkReferences(config: ApisixConfig): ValidationLog[] {
             ));
         }
     }
+
+    logs.push(...checkDuplicateIds(config));
 
     return logs;
 }
