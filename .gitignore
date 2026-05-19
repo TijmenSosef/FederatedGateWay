@@ -44,3 +44,8 @@ Thumbs.db
 /large-apisix-conifg.yaml
 /Validation_Schema_Apisix.json
 /smart-forwarder.lua
+/backend-config.yaml
+/test-config.yaml
+/test-apisix-config.yaml
+/apisix.yaml
+/apisix-config.yaml

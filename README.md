@@ -32,7 +32,7 @@ Docker pulls the pre-built images from GitHub Container Registry automatically �
 
 ## APISIX configuration
 
-Routes, upstreams, services, and consumers are defined in **`test-apisix-config.yaml`** at the repo root. Edit this file to change what APISIX serves — changes take effect after restarting the `apisix` container:
+Routes, upstreams, services, and consumers are defined in **`config/apisix.yaml`**. Edit this file to change what APISIX serves — changes take effect after restarting the `apisix` container:
 
 ```bash
 docker compose restart apisix
@@ -52,7 +52,7 @@ The three example routes that ship with this repo:
 
 ## Backend connection settings
 
-The backend stores its APISIX connection settings in **`backend-config.yaml`** at the repo root. The default Docker values are:
+The backend stores its APISIX connection settings in a file persisted in the `backend_data` Docker volume. The default Docker values (set via environment variables in `docker-compose.yaml`) are:
 
 ```yaml
 host: "http://apisix"
@@ -60,7 +60,7 @@ controlPort: 9092
 metricsPort: 9091
 ```
 
-These can also be changed at runtime via the **Config** page in the UI at http://localhost:3000/config. Changes are written back to `backend-config.yaml` and persist across restarts.
+These can also be changed at runtime via the **Config** page in the UI at http://localhost:3000/config. Changes persist across restarts via the Docker volume.
 
 ---
 
@@ -72,13 +72,15 @@ The `frank-gateway/.env` file contains the TLS certificates and keys used by API
 
 ## Rebuilding images locally
 
-If you have made code changes and want to test them before pushing:
+If you have made code changes and want to test them before pushing, a `docker-compose.override.yml` is included that adds build contexts. Docker Compose merges it automatically:
 
 ```bash
 docker compose up --build
 ```
 
 This builds both the backend and frontend images locally using the Dockerfiles in `Back-End/` and `front-end/`.
+
+End-users who only want to run (not develop) can ignore the override file — `docker compose up` will pull the pre-built images from GHCR.
 
 ---
 
