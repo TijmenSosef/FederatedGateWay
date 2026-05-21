@@ -1,11 +1,13 @@
 import { ValidationLog } from '../../../actions/ValidationLogger';
 import type { ApisixConfig } from '../../../actions/SchemaValidation';
+import { CATEGORY_DEFINITIONS, getIdField } from '../../../config/categoryDefinitions';
 
 function getIds(config: ApisixConfig, category: string): Set<string> {
     const raw = (config as Record<string, unknown>)[category + 's'];
     if (!Array.isArray(raw)) return new Set();
     return new Set(
-        (raw as Record<string, unknown>[])
+        (raw as (Record<string, unknown> | null)[])
+            .filter((e): e is Record<string, unknown> => e !== null && typeof e === 'object')
             .map(e => e['id'])
             .filter((id): id is string => typeof id === 'string'),
     );
@@ -13,18 +15,15 @@ function getIds(config: ApisixConfig, category: string): Set<string> {
 
 function getEntries(config: ApisixConfig, category: string): Record<string, unknown>[] {
     const raw = (config as Record<string, unknown>)[category + 's'];
-    return Array.isArray(raw) ? (raw as Record<string, unknown>[]) : [];
+    if (!Array.isArray(raw)) return [];
+    return (raw as (Record<string, unknown> | null)[]).filter(
+        (e): e is Record<string, unknown> => e !== null && typeof e === 'object',
+    );
 }
 
 const DUPLICATE_CHECK_CATEGORIES: { cat: string; idField: string }[] = [
-    { cat: 'route',         idField: 'id' },
-    { cat: 'upstream',      idField: 'id' },
-    { cat: 'service',       idField: 'id' },
-    { cat: 'consumer',      idField: 'username' },
-    { cat: 'global_rule',   idField: 'id' },
-    { cat: 'ssl',           idField: 'id' },
-    { cat: 'plugin_config', idField: 'id' },
-    { cat: 'stream_route',  idField: 'id' },
+    ...Object.keys(CATEGORY_DEFINITIONS).map(cat => ({ cat, idField: getIdField(cat) })),
+    { cat: 'stream_route', idField: 'id' },
 ];
 
 function checkDuplicateIds(config: ApisixConfig): ValidationLog[] {

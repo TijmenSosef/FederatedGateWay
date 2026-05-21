@@ -1,0 +1,68 @@
+.section {
+    margin-bottom: 16px;
+}
+
+.sectionLabel {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    border-left: 3px solid;
+    padding-left: 6px;
+    margin-bottom: 6px;
+}
+
+.entryBlock {
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border-dim);
+}
+
+.entryBlock:last-child {
+    border-bottom: none;
+}
+
+.entryName {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 2px 0;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    word-break: break-all;
+    cursor: pointer;
+}
+
+.entryName:hover {
+    text-decoration: underline;
+    color: var(--accent-color);
+}
+
+.entryRow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 1px 0 2px 0;
+}
+
+.refField {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.entryId {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    word-break: break-all;
+    flex: 1;
+}
+
+.copyBtn {
+    flex-shrink: 0;
+    min-width: 44px;
+    text-align: center;
+}

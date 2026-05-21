@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useMemo, useRef, useCallback, startTransition} from 'react';
 import yaml from 'js-yaml';
 import {useSearchParams} from 'react-router-dom';
-import styles from './configLoader.module.css';
+import styles from './YamlEditor.module.css';
 import { type ApisixConfig } from '../../actions/SchemaValidation';
 import { type ValidationLog, ValidationLogger } from '../../actions/ValidationLogger';
 import { FileUpload } from './components/FileUpload';
@@ -12,15 +12,15 @@ import { SchemaView } from './components/SchemaView';
 import { useConfigManager } from '../../hooks/useConfigManager';
 import { useAppSettings } from '../../hooks/useAppSettings';
 import { checkReferences } from './actions/checkReferences';
+import { getIdField } from '../../config/categoryDefinitions';
 
 
-const ApisixConfigLoader = () => {
+const YamlEditor = () => {
     const { configManager, config, configText: globalConfigText, schema, setConfig: setGlobalConfig } = useConfigManager();
     const [appSettings, setAppSettings] = useAppSettings();
     const [searchParams] = useSearchParams();
 
     const [configText, setConfigText] = useState<string>(globalConfigText);
-    const [viewMode, setViewMode] = useState<'yaml' | 'json'>(appSettings.ui.configViewMode);
     const [showWhitespace, setShowWhitespace] = useState(true);
     const [logs, setLogs] = useState<ValidationLog[]>([]);
     const [yamlValid, setYamlValid] = useState(true);
@@ -29,6 +29,7 @@ const ApisixConfigLoader = () => {
     const [scrollToTarget, setScrollToTarget] = useState<{ path: string; key: number } | null>(null);
     const [rightTab, setRightTab] = useState<'validation' | 'references'>('validation');
     const [refLogs, setRefLogs] = useState<ValidationLog[]>([]);
+    const [highlightedLog, setHighlightedLog] = useState<ValidationLog | null>(null);
 
     const logger = useMemo(() => new ValidationLogger(), []);
 
@@ -93,26 +94,6 @@ const ApisixConfigLoader = () => {
         });
     }, [appSettings, setAppSettings]);
 
-    const toggleViewMode = (mode: 'yaml' | 'json') => {
-        if (mode === viewMode) return;
-        setViewMode(mode);
-        setAppSettings({ ...appSettings, ui: { ...appSettings.ui, configViewMode: mode } });
-        if (config) {
-            try {
-                const formatted = mode === 'json'
-                    ? JSON.stringify(config, null, 2)
-                    : yaml.dump(config);
-                setConfigText(formatted);
-                localStorage.setItem('apisix-config-text', formatted);
-            } catch {
-                setLogs(prev => [
-                    logger.add('error', `Failed to convert to ${mode.toUpperCase()}`),
-                    ...prev
-                ]);
-            }
-        }
-    };
-
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -122,9 +103,8 @@ const ApisixConfigLoader = () => {
             const content = event.target?.result as string;
             try {
                 const parsed = yaml.load(content) as ApisixConfig;
-                const formatted = viewMode === 'json' ? JSON.stringify(parsed, null, 2) : yaml.dump(parsed);
-                setGlobalConfig(parsed, formatted);
-                setConfigText(formatted);
+                setGlobalConfig(parsed, content);
+                setConfigText(content);
                 setLogs([]);
                 setYamlValid(true);
             } catch {
@@ -174,7 +154,7 @@ const ApisixConfigLoader = () => {
 
         const key = focusCategory + 's';
         const entries = (config[key as keyof typeof config] as Record<string, unknown>[]) ?? [];
-        const idField = focusCategory === 'consumer' ? 'username' : 'id';
+        const idField = getIdField(focusCategory);
         const index = entries.findIndex(e => String(e[idField]) === focusId);
         if (index === -1) return;
 
@@ -185,7 +165,7 @@ const ApisixConfigLoader = () => {
     return (
         <div className="container">
             <div className={`flex justify-between align-center mb-4 pb-3 ${styles.loaderHeader}`}>
-                <h2 className="mb-1">APISIX Config Validator</h2>
+                <h2 className="mb-1">YAML Editor</h2>
             </div>
 
             <FileUpload onFileUpload={handleFileUpload} />
@@ -193,16 +173,19 @@ const ApisixConfigLoader = () => {
             <div className={`grid grid-2 ${styles.loaderGrid}`}>
                 <ConfigEditor
                     configText={configText}
-                    viewMode={viewMode}
                     showWhitespace={showWhitespace}
                     validConfig={validConfig}
+                    yamlValid={yamlValid}
                     fillDefaults={fillDefault}
                     validationLogs={displayLogs}
                     onConfigChange={handleConfigChange}
                     onToggleWhitespace={() => setShowWhitespace(!showWhitespace)}
-                    onToggleViewMode={toggleViewMode}
                     onNewConfig={handleNewConfig}
                     onToggleFillDefaults={toggleFillDefault}
+                    onLineClick={(log) => {
+                        setHighlightedLog(log);
+                        setRightTab('validation');
+                    }}
                     scrollToTarget={scrollToTarget}
                 />
 
@@ -212,7 +195,9 @@ const ApisixConfigLoader = () => {
                         onClear={clearLogs}
                         config={config}
                         headerExtra={tabToggle}
+                        highlightedLog={highlightedLog}
                         onLogClick={(log) => {
+                            setHighlightedLog(null);
                             if (log.path) {
                                 scrollKeyRef.current += 1;
                                 setScrollToTarget({ path: log.path, key: scrollKeyRef.current });
@@ -228,4 +213,4 @@ const ApisixConfigLoader = () => {
         </div>
     );
 };
-export default ApisixConfigLoader
+export default YamlEditor
