@@ -81,7 +81,7 @@ export const ConfigDesigner = () => {
 
     const [search, setSearch] = useState('');
     const [domain, setDomain] = useState('');
-    const {category, values, handleChange, handleCategorySwitch, loadValues} = useFormByCategory(initialCategory);
+    const {category, values, handleChange, handleCategorySwitch, switchCategoryForLoad, loadValues} = useFormByCategory(initialCategory);
     const {configManager, schema, schemaLoading, config, configText, setConfig} = useConfigManager();
     const [designerSettings, setDesignerSettings] = useDesignerSettings();
 
@@ -102,7 +102,7 @@ export const ConfigDesigner = () => {
     const {editingEntry, handleLoadEntry, handleNewEntry, clearEditingEntry} = useEntryEditor({
         category,
         configManager,
-        handleCategorySwitch,
+        switchCategoryForLoad,
         loadValues,
         initialCategory,
         focusId: searchParams.get('focusId'),
