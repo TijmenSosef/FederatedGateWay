@@ -65,8 +65,10 @@ function buildYamlObject(values: Record<string, unknown>, fields: SchemaField[])
     return result;
 }
 
-function getConfigStatus(configText: string, configStale: boolean, configHasErrors: boolean) {
-    if (!configText) return {statusClass: null, statusLabel: null};
+function getConfigStatus(configText: string, configStale: boolean, configHasErrors: boolean, configYamlValid: boolean) {
+    const hasText = Boolean(configText) || !configYamlValid;
+    if (!hasText) return {statusClass: null, statusLabel: null};
+    if (!configYamlValid) return {statusClass: styles.statusError, statusLabel: 'YAML error'};
     if (configStale) return {statusClass: styles.statusError, statusLabel: 'Config outdated'};
     if (configHasErrors) return {statusClass: styles.statusWarning, statusLabel: 'Config has errors'};
     return {statusClass: styles.statusValid, statusLabel: 'Config valid'};
@@ -82,7 +84,7 @@ export const ConfigDesigner = () => {
     const [search, setSearch] = useState('');
     const [domain, setDomain] = useState('');
     const {category, values, handleChange, handleCategorySwitch, switchCategoryForLoad, loadValues} = useFormByCategory(initialCategory);
-    const {configManager, schema, schemaLoading, config, configText, setConfig} = useConfigManager();
+    const {configManager, schema, schemaLoading, config, configText, configYamlValid, setConfig} = useConfigManager();
     const [designerSettings, setDesignerSettings] = useDesignerSettings();
 
     const generator = useMemo(() => schema ? new SchemaFormGenerator(schema) : null, [schema]);
@@ -147,7 +149,7 @@ export const ConfigDesigner = () => {
         return configManager.validate() ?? [];
     }, [config, schema, configManager]);
     const configHasErrors = configValidationLogs.some(l => l.type === 'error');
-    const {statusClass, statusLabel} = getConfigStatus(configText ?? '', configStale, configHasErrors);
+    const {statusClass, statusLabel} = getConfigStatus(configText ?? '', configStale, configHasErrors, configYamlValid);
 
     const domains = designerSettings.domains;
     const baseOverrides = getMergedOverrides(designerSettings, category);

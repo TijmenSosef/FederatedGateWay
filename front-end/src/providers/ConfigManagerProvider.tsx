@@ -15,6 +15,11 @@ export const ConfigManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         return null;
     });
     const [configText, setConfigText] = useState<string>(() => localStorage.getItem('apisix-config-text') ?? '');
+    const [configYamlValid, setConfigYamlValid] = useState<boolean>(() => {
+        const raw = localStorage.getItem('apisix-config-text-raw');
+        if (!raw) return true;
+        try { yaml.load(raw); return true; } catch { return false; }
+    });
     const [schema, setSchema] = useState<Record<string, unknown> | null>(null);
     const [schemaLoading, setSchemaLoading] = useState(false);
 
@@ -61,11 +66,13 @@ export const ConfigManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         configManager,
         config,
         configText,
+        configYamlValid,
         schema,
         schemaLoading,
         setConfig,
+        setConfigYamlValid,
         fetchSchema,
-    }), [configManager, config, configText, schema, schemaLoading, setConfig, fetchSchema]);
+    }), [configManager, config, configText, configYamlValid, schema, schemaLoading, setConfig, setConfigYamlValid, fetchSchema]);
 
     return (
         <ConfigManagerContext.Provider value={value}>

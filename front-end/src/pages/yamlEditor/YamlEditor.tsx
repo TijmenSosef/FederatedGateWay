@@ -16,11 +16,13 @@ import { getDisplayId } from '../../config/categoryDefinitions';
 
 
 const YamlEditor = () => {
-    const { configManager, config, configText: globalConfigText, schema, setConfig: setGlobalConfig } = useConfigManager();
+    const { configManager, config, configText: globalConfigText, schema, setConfig: setGlobalConfig, setConfigYamlValid } = useConfigManager();
     const [appSettings, setAppSettings] = useAppSettings();
     const [searchParams] = useSearchParams();
 
-    const [configText, setConfigText] = useState<string>(globalConfigText);
+    const [configText, setConfigText] = useState<string>(
+        localStorage.getItem('apisix-config-text-raw') ?? globalConfigText
+    );
     const [showWhitespace, setShowWhitespace] = useState(true);
     const [logs, setLogs] = useState<ValidationLog[]>([]);
     const [yamlValid, setYamlValid] = useState(true);
@@ -71,18 +73,22 @@ const YamlEditor = () => {
         setConfigText(newValue);
 
         if (!newValue.trim()) {
+            localStorage.removeItem('apisix-config-text-raw');
             setGlobalConfig(null, '');
+            setConfigYamlValid(true);
             setYamlValid(true);
             return;
         }
 
+        localStorage.setItem('apisix-config-text-raw', newValue);
+
         try {
             const parsed = yaml.load(newValue) as ApisixConfig;
             setGlobalConfig(parsed, newValue);
+            setConfigYamlValid(true);
             setYamlValid(true);
         } catch {
-            // Still save the text locally for editing, but don't update global config
-            localStorage.setItem('apisix-config-text', newValue);
+            setConfigYamlValid(false);
             setYamlValid(false);
         }
     };
@@ -104,15 +110,18 @@ const YamlEditor = () => {
             const content = event.target?.result as string;
             try {
                 const parsed = yaml.load(content) as ApisixConfig;
+                localStorage.setItem('apisix-config-text-raw', content);
                 setGlobalConfig(parsed, content);
                 setConfigText(content);
                 setLogs([]);
+                setConfigYamlValid(true);
                 setYamlValid(true);
             } catch {
                 setLogs(prev => [
                     logger.add('error', 'Failed to parse file.'),
                     ...prev
                 ]);
+                setConfigYamlValid(false);
                 setYamlValid(false);
             }
         };
@@ -122,8 +131,10 @@ const YamlEditor = () => {
     const clearLogs = () => setLogs([]);
 
     const handleNewConfig = () => {
+        localStorage.removeItem('apisix-config-text-raw');
         setGlobalConfig(null, '');
         setConfigText('');
+        setConfigYamlValid(true);
         setYamlValid(true);
     };
 
