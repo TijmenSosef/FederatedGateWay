@@ -303,7 +303,16 @@ export function buildTopology(config: ApisixConfig, colorScheme: ColorScheme = '
 
         for (const target of authTargetNodes) {
             const targetAuth = authPluginNames(target.data.entry);
-            const shared = [...consumerAuth].find(p => targetAuth.has(p));
+
+            // For routes, also consider auth plugins inherited via plugin_config_id
+            let inheritedAuth = new Set<string>();
+            if (target.data.category === 'route') {
+                const pcNodeId = resolveRef('plugin_config', target.data.entry['plugin_config_id']);
+                const pcNode = pcNodeId ? nodes.find(n => n.id === pcNodeId) : null;
+                if (pcNode) inheritedAuth = authPluginNames(pcNode.data.entry);
+            }
+
+            const shared = [...consumerAuth].find(p => targetAuth.has(p) || inheritedAuth.has(p));
             if (!shared) continue;
 
             // Respect the `consumer-restriction` plugin on the target resource.

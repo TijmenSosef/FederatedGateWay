@@ -1,6 +1,7 @@
 import React, {useEffect, useMemo, useRef} from 'react';
 import {ValidationLog} from '../../../actions/ValidationLogger';
-import {parseYamlDoc, resolvePathToNode, buildLineSegments} from '../yamlLineUtils';
+import {parseYamlDoc, resolvePathToNode, buildLineSegments, buildCategoryLineMap} from '../yamlLineUtils';
+import { CATEGORY_DEFINITIONS } from '../../../config/categoryDefinitions';
 import styles from '../YamlEditor.module.css';
 
 interface ConfigEditorProps {
@@ -198,6 +199,11 @@ export const ConfigEditor = ({
         return { errorLines: lines, errorLineLogMap: logMap };
     }, [parsedDoc, validationLogs]);
 
+    const categoryLineMap = useMemo(() => {
+        if (!parsedDoc) return new Map<number, string>();
+        return buildCategoryLineMap(parsedDoc.doc, parsedDoc.lineCounter);
+    }, [parsedDoc]);
+
     const lastScrolledKeyRef = useRef<number | null>(null);
 
     useEffect(() => {
@@ -293,6 +299,26 @@ export const ConfigEditor = ({
                             })}
                         </div>
                     )}
+
+                    {/* Category color strip */}
+                    {configText && (
+                        <div className={styles.categoryStrip}>
+                            {configText.split('\n').map((_, index) => {
+                                const category = categoryLineMap.get(index + 1);
+                                const color = category ? CATEGORY_DEFINITIONS[category]?.color : undefined;
+                                return (
+                                    <div
+                                        key={index}
+                                        className={styles.categoryStripLine}
+                                        style={color ? { backgroundColor: color } : undefined}
+                                    />
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* Spacer between category strip and editor */}
+                    {configText && <div />}
 
                     {/* Editor layers (stacked via grid-area) */}
                     <div className={styles.editorLayers}>

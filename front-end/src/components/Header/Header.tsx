@@ -57,7 +57,7 @@ export const Header: React.FC = () => {
           <NavLink to="/dashboard" className={({ isActive }) => (isActive ? 'active' : undefined)}>
             Dashboard
           </NavLink>
-          <NavLink to="/loadConfig" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+          <NavLink to="/yamlEditor" className={({ isActive }) => (isActive ? 'active' : undefined)}>
             YAML Editor
           </NavLink>
           <NavLink to="/config" className={({ isActive }) => (isActive ? 'active' : undefined)}>

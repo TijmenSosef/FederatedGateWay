@@ -1,4 +1,4 @@
-import {Document, LineCounter, parseDocument, type Node} from 'yaml';
+import {Document, LineCounter, parseDocument, type Node, isMap} from 'yaml';
 
 export type SegmentType = 'normal' | 'whitespace' | 'comment' | 'placeholder' | 'key';
 
@@ -140,6 +140,36 @@ export function buildLineSegments(line: string, showWhitespace: boolean): { text
     }
 
     return segments;
+}
+
+export function buildCategoryLineMap(doc: Document, lineCounter: LineCounter): Map<number, string> {
+    const lineMap = new Map<number, string>();
+    const categoryByKey: Record<string, string> = {
+        routes: 'route', upstreams: 'upstream', services: 'service',
+        consumers: 'consumer', global_rules: 'global_rule',
+        plugin_configs: 'plugin_config', ssls: 'ssl',
+    };
+
+    const root = doc.contents;
+    if (!isMap(root)) return lineMap;
+
+    for (const pair of root.items) {
+        const key = pair.key as { value?: unknown; range?: number[] } | null;
+        const value = pair.value as { range?: number[] } | null;
+        if (!key?.range || !value?.range) continue;
+
+        const keyStr = String(key.value ?? '');
+        const category = categoryByKey[keyStr];
+        if (!category) continue;
+
+        const startLine = lineCounter.linePos(key.range[0]).line;
+        const endLine = lineCounter.linePos(value.range[1]).line;
+        for (let i = startLine; i <= endLine; i++) {
+            lineMap.set(i, category);
+        }
+    }
+
+    return lineMap;
 }
 
 export function parseYamlDoc(configText: string): { doc: Document; lineCounter: LineCounter } {

@@ -86,7 +86,7 @@
 .editorGrid {
     position: relative;
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto 1px 4px 1fr;
     min-height: 100%;
 }
 
@@ -245,6 +245,17 @@
 .schemaContainer {
     max-height: 400px;
     padding: 16px;
+}
+
+.categoryStrip {
+    user-select: none;
+    pointer-events: none;
+}
+
+.categoryStripLine {
+    min-height: 1.5em;
+    width: 100%;
+    border-radius: 1px;
 }
 
 .lineOverlay {

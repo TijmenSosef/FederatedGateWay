@@ -19,7 +19,7 @@ function App() {
                     <Route path="/config" element={<Config/>} />
                     <Route path="/designer" element={<ConfigDesigner/>} />
                     <Route path="/designer/settings" element={<DesignerSettingsPage/>} />
-                    <Route path="/loadConfig" element={<YamlEditor/>} />
+                    <Route path="/yamlEditor" element={<YamlEditor/>} />
                     <Route path="/topology" element={<TopologyPage/>} />
                 </Routes>
             </>
