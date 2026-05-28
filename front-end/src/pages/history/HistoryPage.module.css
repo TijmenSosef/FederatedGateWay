@@ -1,0 +1,77 @@
+.page {
+    padding-top: 24px;
+    padding-bottom: 24px;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 16px;
+    height: calc(100vh - 120px);
+    min-height: 400px;
+}
+
+@media (max-width: 768px) {
+    .layout {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+}
+
+.leftPanel {
+    padding: 0;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.rightPanel {
+    padding: 0;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.saveForm {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-dim);
+    background: var(--bg-secondary);
+}
+
+.saveInput {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    border: 1px solid var(--border-dim);
+    border-radius: 4px;
+    background: var(--bg-primary);
+    color: inherit;
+    font-size: 0.85rem;
+}
+
+.saveInput:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.statusMsg {
+    padding: 10px 14px;
+}
+
+.compareSelect {
+    padding: 3px 6px;
+    border: 1px solid var(--border-dim);
+    border-radius: 4px;
+    background: var(--bg-secondary);
+    color: inherit;
+    font-family: monospace;
+    max-width: 200px;
+}
+
+.diffArea {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}

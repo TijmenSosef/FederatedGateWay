@@ -8,6 +8,7 @@ import { ValidationLogs } from './components/ValidationLogs';
 import { ReferencesPanel } from './components/ReferencesPanel';
 import { useConfigManager } from '../../hooks/useConfigManager';
 import { useAppSettings } from '../../hooks/useAppSettings';
+import { useVersionHistory } from '../../hooks/useVersionHistory';
 import { checkReferences } from './actions/checkReferences';
 import { getDisplayId } from '../../config/categoryDefinitions';
 
@@ -15,6 +16,10 @@ import { getDisplayId } from '../../config/categoryDefinitions';
 const YamlEditor = () => {
     const { configManager, config, configYamlValid, schema, setConfig: setGlobalConfig } = useConfigManager();
     const [appSettings, setAppSettings] = useAppSettings();
+    const { saveVersion } = useVersionHistory();
+    const [saveVersionOpen, setSaveVersionOpen] = useState(false);
+    const [saveVersionMessage, setSaveVersionMessage] = useState('');
+    const [savingVersion, setSavingVersion] = useState(false);
     const [searchParams] = useSearchParams();
 
     const [configText, setConfigText] = useState<string>(configManager.getRawText());
@@ -101,6 +106,21 @@ const YamlEditor = () => {
         setConfigText('');
     };
 
+    const handleSaveVersionClick = () => {
+        setSaveVersionOpen(open => !open);
+    };
+
+    const handleSaveVersionSubmit = async () => {
+        setSavingVersion(true);
+        try {
+            await saveVersion(saveVersionMessage, configManager.getRawText());
+            setSaveVersionOpen(false);
+            setSaveVersionMessage('');
+        } finally {
+            setSavingVersion(false);
+        }
+    };
+
     useEffect(() => {
         if (config && schema) {
             configManager.setFillInDefaults(fillDefault);
@@ -152,6 +172,33 @@ const YamlEditor = () => {
 
             <FileUpload onFileUpload={handleFileUpload} />
 
+            {saveVersionOpen && (
+                <div className={`flex align-center gap-sm mb-4 ${styles.saveVersionForm}`}>
+                    <input
+                        type="text"
+                        placeholder="Describe this snapshot..."
+                        value={saveVersionMessage}
+                        onChange={e => setSaveVersionMessage(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleSaveVersionSubmit(); }}
+                        className={styles.saveVersionInput}
+                        autoFocus
+                    />
+                    <button
+                        className="btn-primary text-small"
+                        onClick={handleSaveVersionSubmit}
+                        disabled={savingVersion}
+                    >
+                        {savingVersion ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                        className="text-small"
+                        onClick={() => { setSaveVersionOpen(false); setSaveVersionMessage(''); }}
+                    >
+                        Cancel
+                    </button>
+                </div>
+            )}
+
             <div className={`grid grid-2 ${styles.loaderGrid}`}>
                 <ConfigEditor
                     configText={configText}
@@ -169,6 +216,7 @@ const YamlEditor = () => {
                         setRightTab('validation');
                     }}
                     scrollToTarget={scrollToTarget}
+                    onSaveVersion={handleSaveVersionClick}
                 />
 
                 {rightTab === 'validation' ? (

@@ -1,0 +1,82 @@
+.placeholder {
+    padding: 32px 16px;
+    text-align: center;
+}
+
+.diffWrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.diffHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-dim);
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.diffArrow {
+    color: var(--text-secondary);
+}
+
+.diffLabel {
+    font-family: monospace;
+    color: var(--text-secondary);
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.diffContainer {
+    flex: 1;
+    overflow: auto;
+    font-family: monospace;
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.diffLine {
+    display: flex;
+    align-items: stretch;
+    white-space: pre;
+}
+
+.diffLine:hover {
+    filter: brightness(0.96);
+}
+
+.lineAdded {
+    background-color: color-mix(in srgb, var(--success-color, #4caf50) 15%, transparent);
+}
+
+.lineRemoved {
+    background-color: color-mix(in srgb, var(--error-color, #f44336) 15%, transparent);
+}
+
+.lineContext {
+    background-color: transparent;
+}
+
+.gutter {
+    width: 1.5ch;
+    flex-shrink: 0;
+    text-align: center;
+    color: var(--text-secondary);
+    user-select: none;
+    padding: 0 4px;
+    border-right: 1px solid var(--border-dim);
+    margin-right: 8px;
+}
+
+.lineContent {
+    flex: 1;
+    padding: 0 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

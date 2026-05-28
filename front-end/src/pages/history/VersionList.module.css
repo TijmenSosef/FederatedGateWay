@@ -1,0 +1,75 @@
+.list {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex: 1;
+    border-top: 1px solid var(--border-dim);
+}
+
+.empty {
+    padding: 32px 16px;
+    text-align: center;
+}
+
+.row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-dim);
+    transition: background 0.1s;
+}
+
+.row:hover {
+    background: var(--bg-secondary);
+}
+
+.rowMain {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.hash {
+    font-family: monospace;
+    font-size: 0.75rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-dim);
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: var(--accent-color);
+    flex-shrink: 0;
+}
+
+.message {
+    font-size: 0.85rem;
+    font-weight: 500;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.noMessage {
+    composes: message;
+    color: var(--text-secondary);
+    font-weight: 400;
+    font-style: italic;
+}
+
+.time {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.rowActions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dangerBtn {
+    color: var(--error-color, #f44336);
+}

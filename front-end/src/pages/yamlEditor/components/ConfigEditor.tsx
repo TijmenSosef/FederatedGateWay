@@ -19,6 +19,7 @@ interface ConfigEditorProps {
     onNewConfig: () => void;
     onLineClick?: (log: ValidationLog) => void;
     scrollToTarget?: { path: string; key: number } | null;
+    onSaveVersion?: () => void;
 }
 
 
@@ -131,7 +132,8 @@ export const ConfigEditor = ({
                                  onToggleFillDefaults,
                                  onNewConfig,
                                  onLineClick,
-                                 scrollToTarget
+                                 scrollToTarget,
+                                 onSaveVersion,
                              }: ConfigEditorProps) => {
 
     const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -257,6 +259,15 @@ export const ConfigEditor = ({
                     >
                         New
                     </button>
+
+                    {onSaveVersion && (
+                        <button
+                            className={`text-small ${styles.btnIcon}`}
+                            onClick={onSaveVersion}
+                        >
+                            Save Version
+                        </button>
+                    )}
                 </div>
             </div>
             {configText && (
