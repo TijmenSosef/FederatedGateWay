@@ -1,3 +1,14 @@
+export function formatExactDate(isoString: string): string {
+    const d = new Date(isoString);
+    return d.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
 export function formatRelativeTime(isoString: string): string {
     const delta = Date.now() - Date.parse(isoString);
     const seconds = Math.floor(delta / 1000);

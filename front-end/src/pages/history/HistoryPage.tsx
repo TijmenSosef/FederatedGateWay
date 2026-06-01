@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useVersionHistory, type VersionSummary } from '../../hooks/useVersionHistory';
 import { useConfigManager } from '../../hooks/useConfigManager';
 import { VersionList } from './VersionList';
@@ -7,11 +6,26 @@ import { DiffViewer } from './DiffViewer';
 import styles from './HistoryPage.module.css';
 
 const CURRENT_SENTINEL = '__current__';
+const GITHUB_STORAGE_KEY = 'github-settings';
+
+interface GithubSettings {
+    githubToken: string;
+    githubRepo: string;
+    githubBranch: string;
+    githubFilePath: string;
+}
+
+function loadGithubSettings(): GithubSettings {
+    try {
+        const stored = localStorage.getItem(GITHUB_STORAGE_KEY);
+        if (stored) return JSON.parse(stored);
+    } catch {}
+    return { githubToken: '', githubRepo: '', githubBranch: '', githubFilePath: '' };
+}
 
 export const HistoryPage: React.FC = () => {
-    const navigate = useNavigate();
     const { configManager, setConfig } = useConfigManager();
-    const { versions, error, saveVersion, fetchVersionContent, loadFileContent } = useVersionHistory();
+    const { versions, error, saveVersion, fetchVersionContent, loadFileContent, clearCache, refetch } = useVersionHistory();
     const versionList = versions ?? [];
 
     const [saveFormOpen, setSaveFormOpen] = useState(false);
@@ -19,6 +33,34 @@ export const HistoryPage: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [loadingFile, setLoadingFile] = useState(false);
+    const [pendingRestoreVersion, setPendingRestoreVersion] = useState<VersionSummary | null>(null);
+
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const [githubSettings, setGithubSettings] = useState<GithubSettings>(loadGithubSettings);
+    const [githubDraft, setGithubDraft] = useState<GithubSettings>(loadGithubSettings);
+
+    const openSettings = () => {
+        setGithubDraft(githubSettings);
+        setSettingsOpen(true);
+    };
+
+    const saveSettings = () => {
+        const repoChanged = githubDraft.githubRepo !== githubSettings.githubRepo
+            || githubDraft.githubBranch !== githubSettings.githubBranch
+            || githubDraft.githubFilePath !== githubSettings.githubFilePath;
+        setGithubSettings(githubDraft);
+        localStorage.setItem(GITHUB_STORAGE_KEY, JSON.stringify(githubDraft));
+        setSettingsOpen(false);
+        if (repoChanged) {
+            clearCache();
+            refetch();
+        }
+    };
+
+    const cancelSettings = () => {
+        setGithubDraft(githubSettings);
+        setSettingsOpen(false);
+    };
 
     const [fromId, setFromId] = useState<string>('');
     const [toId, setToId] = useState<string>(CURRENT_SENTINEL);
@@ -47,21 +89,35 @@ export const HistoryPage: React.FC = () => {
             }
             return;
         }
-        const currentIndex = versionList.findIndex(v => v.id === version.id);
-        const previousVersion = versionList[currentIndex + 1];
-        if (previousVersion) {
-            loadDiff(previousVersion.id, version.id);
-        } else {
-            loadDiff(version.id, CURRENT_SENTINEL);
+        loadDiff(version.id, CURRENT_SENTINEL);
+    };
+
+    const handleSwapDiff = () => {
+        if (fromId || toId) {
+            loadDiff(toId, fromId);
         }
     };
 
-    const handleRestore = async (version: VersionSummary) => {
+    const handleRestore = (version: VersionSummary) => {
+        const hasConfig = configManager.getRawText().trim().length > 0;
+        if (hasConfig) {
+            setPendingRestoreVersion(version);
+        } else {
+            confirmRestore(version);
+        }
+    };
+
+    const confirmRestore = async (version: VersionSummary) => {
+        setPendingRestoreVersion(null);
         setDiffLoading(true);
         try {
             const content = await fetchVersionContent(version.id);
             setConfig(content);
-            navigate('/yamlEditor');
+            if (fromId === CURRENT_SENTINEL) {
+                setFromContent(content);
+            } else if (toId === CURRENT_SENTINEL) {
+                setToContent(content);
+            }
         } finally {
             setDiffLoading(false);
         }
@@ -72,8 +128,12 @@ export const HistoryPage: React.FC = () => {
         setLoadingFile(true);
         try {
             const content = await loadFileContent();
-            setConfig(content);
-            navigate('/yamlEditor');
+            setFromContent(content);
+            setToContent(configManager.getRawText());
+            setFromLabel('Repo (HEAD)');
+            setToLabel('Current (unsaved)');
+            setFromId('__repo__');
+            setToId(CURRENT_SENTINEL);
         } catch (e) {
             setLoadError(e instanceof Error ? e.message : 'Failed to load file');
         } finally {
@@ -131,26 +191,95 @@ export const HistoryPage: React.FC = () => {
 
     return (
         <div className={`container ${styles.page}`}>
-            <div className={styles.layout}>
-                <div className={`card flex flex-column ${styles.leftPanel}`}>
-                    <div className="card-header flex justify-between align-center">
-                        <span>Version History</span>
+            <div className={styles.pageHeader}>
+                <h1>Version History</h1>
+                <button
+                    className="text-small"
+                    onClick={() => settingsOpen ? cancelSettings() : openSettings()}
+                >
+                    Settings
+                </button>
+            </div>
+
+            {settingsOpen && (
+                <div className={`card ${styles.settingsCard}`}>
+                    <div className="card-header">
+                        <span>GitHub Settings</span>
+                    </div>
+                    <div className={styles.settingsFields}>
+                        <label className={styles.settingsLabel}>
+                            <span className="text-small">Repository</span>
+                            <input
+                                className={styles.saveInput}
+                                type="text"
+                                placeholder="owner/repo or https://github.com/owner/repo"
+                                value={githubDraft.githubRepo}
+                                onChange={e => setGithubDraft(prev => ({ ...prev, githubRepo: e.target.value }))}
+                            />
+                        </label>
+                        <label className={styles.settingsLabel}>
+                            <span className="text-small">Branch</span>
+                            <input
+                                className={styles.saveInput}
+                                type="text"
+                                placeholder="e.g. main"
+                                value={githubDraft.githubBranch}
+                                onChange={e => setGithubDraft(prev => ({ ...prev, githubBranch: e.target.value }))}
+                            />
+                        </label>
+                        <label className={styles.settingsLabel}>
+                            <span className="text-small">Config file path</span>
+                            <input
+                                className={styles.saveInput}
+                                type="text"
+                                placeholder="e.g. config/apisix.yaml"
+                                value={githubDraft.githubFilePath}
+                                onChange={e => setGithubDraft(prev => ({ ...prev, githubFilePath: e.target.value }))}
+                            />
+                        </label>
+                        <label className={styles.settingsLabel}>
+                            <span className="text-small">Personal access token</span>
+                            <input
+                                className={styles.saveInput}
+                                type="password"
+                                placeholder="ghp_..."
+                                value={githubDraft.githubToken}
+                                onChange={e => setGithubDraft(prev => ({ ...prev, githubToken: e.target.value }))}
+                            />
+                        </label>
+                    </div>
+                    <div className={styles.settingsFooter}>
+                        <span className={`text-muted text-small`}>Settings are saved in your browser only. Do not use on shared or public devices.</span>
                         <div className="flex gap-sm">
-                            <button
-                                className="text-small"
-                                onClick={handleLoadFromRepo}
-                                disabled={loadingFile}
-                            >
-                                {loadingFile ? 'Loading...' : 'Load from repo'}
-                            </button>
-                            <button
-                                className="btn-primary text-small"
-                                onClick={() => setSaveFormOpen(open => !open)}
-                            >
-                                Commit
-                            </button>
+                            <button className="btn-primary text-small" onClick={saveSettings}>Save Settings</button>
+                            <button className="text-small" onClick={cancelSettings}>Cancel</button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            <div className={styles.layout}>
+
+                <div className={`card flex flex-column ${styles.leftPanel}`}>
+                    <div className="card-header">
+                        <span>Version History</span>
+                    </div>
+                    <div className={styles.toolbar}>
+                        <button
+                            className="btn-primary text-small"
+                            onClick={() => setSaveFormOpen(open => !open)}
+                        >
+                            Commit
+                        </button>
+                        <button
+                            className="text-small"
+                            onClick={handleLoadFromRepo}
+                            disabled={loadingFile}
+                        >
+                            {loadingFile ? 'Loading...' : 'Load from repo'}
+                        </button>
+                    </div>
+
                     {loadError && (
                         <div className={`text-error text-small ${styles.statusMsg}`}>{loadError}</div>
                     )}
@@ -189,8 +318,11 @@ export const HistoryPage: React.FC = () => {
                         currentSentinel={CURRENT_SENTINEL}
                         loading={versions === null}
                         busy={diffLoading}
+                        pendingRestoreId={pendingRestoreVersion?.id}
                         onView={handleView}
                         onRestore={handleRestore}
+                        onConfirmRestore={confirmRestore}
+                        onCancelRestore={() => setPendingRestoreVersion(null)}
                     />
                 </div>
 
@@ -225,6 +357,13 @@ export const HistoryPage: React.FC = () => {
                                 </option>
                             ))}
                         </select>
+                        <button className={`text-small ${styles.swapBtn}`} onClick={handleSwapDiff} title="Swap direction">⇄</button>
+                        {toId === CURRENT_SENTINEL && fromId && fromId !== CURRENT_SENTINEL && (
+                            <span className={`text-small text-muted`}>Changes since</span>
+                        )}
+                        {fromId === CURRENT_SENTINEL && toId && toId !== CURRENT_SENTINEL && (
+                            <span className={`text-small text-muted`}>Restore preview</span>
+                        )}
                     </div>
 
                     <div className={styles.diffArea}>

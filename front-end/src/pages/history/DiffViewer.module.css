@@ -20,6 +20,10 @@
     flex-shrink: 0;
 }
 
+.noDiff {
+    color: orange;
+}
+
 .toggleButton {
     margin-left: auto;
     background: none;
@@ -147,3 +151,41 @@
 .placeholderText {
     color: #6bb5d6;
 }
+
+.splitRow {
+    display: flex;
+    align-items: stretch;
+    white-space: pre;
+}
+
+.splitRow:hover .splitCell {
+    filter: brightness(0.96);
+}
+
+.splitCell {
+    display: flex;
+    align-items: stretch;
+    flex: 1;
+    min-width: 0;
+}
+
+.splitCellLeft {
+    border-right: 2px solid var(--border-dim);
+}
+
+.splitCellEmpty {
+    background-color: color-mix(in srgb, var(--text-secondary, #888) 5%, transparent);
+}
+
+.splitLineNum {
+    display: inline-block;
+    min-width: 3ch;
+    text-align: right;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    opacity: 0.5;
+    user-select: none;
+    padding: 0 4px;
+    border-right: 1px solid var(--border-dim);
+}
+

@@ -1,11 +1,30 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { client } from '../api/client';
 
+const GITHUB_STORAGE_KEY = 'github-settings';
+
+function getGithubHeaders(): Record<string, string> {
+    try {
+        const stored = localStorage.getItem(GITHUB_STORAGE_KEY);
+        if (!stored) return {};
+        const s = JSON.parse(stored);
+        return {
+            'X-Github-Token': s.githubToken || '',
+            'X-Github-Repo': s.githubRepo || '',
+            'X-Github-Branch': s.githubBranch || '',
+            'X-Github-File-Path': s.githubFilePath || '',
+        };
+    } catch {
+        return {};
+    }
+}
+
 export interface VersionSummary {
     id: string;
     message: string;
     createdAt: string;
     commitUrl?: string;
+    author?: string;
 }
 
 interface VersionDetail extends VersionSummary {
@@ -17,6 +36,7 @@ interface UseVersionHistory {
     loading: boolean;
     error: string | null;
     refetch: () => void;
+    clearCache: () => void;
     saveVersion: (message: string, content: string) => Promise<void>;
     fetchVersionContent: (id: string) => Promise<string>;
     loadFileContent: () => Promise<string>;
@@ -36,7 +56,7 @@ export function useVersionHistory(): UseVersionHistory {
         const controller = new AbortController();
         controllerRef.current = controller;
         try {
-            const data = await client<VersionSummary[]>('/versions', { signal: controller.signal });
+            const data = await client<VersionSummary[]>('/versions', { signal: controller.signal, headers: getGithubHeaders() });
             const latestId = data[0]?.id ?? null;
             if (latestId !== cachedLatestId) {
                 cachedVersions = data;
@@ -47,7 +67,10 @@ export function useVersionHistory(): UseVersionHistory {
         } catch (err) {
             if (err instanceof Error && err.name === 'AbortError') return;
             setError(err instanceof Error ? err.message : 'An error occurred');
-            if (cachedVersions === null) setVersions([]);
+            cachedVersions = null;
+            cachedLatestId = null;
+            cachedContent.clear();
+            setVersions([]);
         }
     }, []);
 
@@ -61,7 +84,7 @@ export function useVersionHistory(): UseVersionHistory {
     }, [fetchVersions]);
 
     const saveVersion = async (message: string, content: string): Promise<void> => {
-        const newVersion = await client<VersionSummary>('/versions', { body: { message, content } });
+        const newVersion = await client<VersionSummary>('/versions', { body: { message, content }, headers: getGithubHeaders() });
         cachedVersions = [newVersion, ...(cachedVersions ?? [])];
         cachedLatestId = newVersion.id;
         setVersions([...cachedVersions]);
@@ -71,13 +94,13 @@ export function useVersionHistory(): UseVersionHistory {
     const fetchVersionContent = async (id: string): Promise<string> => {
         const hit = cachedContent.get(id);
         if (hit !== undefined) return hit;
-        const detail = await client<VersionDetail>(`/versions/${id}`, { method: 'GET' });
+        const detail = await client<VersionDetail>(`/versions/${id}`, { method: 'GET', headers: getGithubHeaders() });
         cachedContent.set(id, detail.content);
         return detail.content;
     };
 
     const loadFileContent = async (): Promise<string> => {
-        const response = await fetch('/api/versions/file');
+        const response = await fetch('/api/versions/file', { headers: getGithubHeaders() });
         if (!response.ok) {
             const text = await response.text();
             throw new Error(text || `HTTP ${response.status}`);
@@ -85,11 +108,19 @@ export function useVersionHistory(): UseVersionHistory {
         return response.text();
     };
 
+    const clearCache = () => {
+        cachedVersions = null;
+        cachedLatestId = null;
+        cachedContent.clear();
+        setVersions(null);
+    };
+
     return {
         versions,
         loading: versions === null,
         error,
         refetch: fetchVersions,
+        clearCache,
         saveVersion,
         fetchVersionContent,
         loadFileContent,

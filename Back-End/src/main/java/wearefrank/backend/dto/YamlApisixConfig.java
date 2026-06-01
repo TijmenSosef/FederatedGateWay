@@ -11,13 +11,5 @@ public record YamlApisixConfig(
         @JsonProperty("metricsPort")
         Integer metricsPort,
         @JsonProperty("routes")
-        ArrayList<RouteDto> routes,
-        @JsonProperty("githubToken")
-        String githubToken,
-        @JsonProperty("githubRepo")
-        String githubRepo,
-        @JsonProperty("githubBranch")
-        String githubBranch,
-        @JsonProperty("githubFilePath")
-        String githubFilePath
+        ArrayList<RouteDto> routes
 ) {}
