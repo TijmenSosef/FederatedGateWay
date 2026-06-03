@@ -10,7 +10,7 @@ import { useConfigManager } from '../../hooks/useConfigManager';
 import { useAppSettings } from '../../hooks/useAppSettings';
 import { useVersionHistory } from '../../hooks/useVersionHistory';
 import { checkReferences } from './actions/checkReferences';
-import { getDisplayId } from '../../config/categoryDefinitions';
+import { getDisplayId, CATEGORY_DEFINITIONS } from '../../config/categoryDefinitions';
 
 
 const YamlEditor = () => {
@@ -47,10 +47,54 @@ const YamlEditor = () => {
     );
 
     // merged log list: local errors first (e.g. missing #END), then schema errors, then reference warnings
+    // sorted by path so the order matches the document order in the editor
+
+    // maps plural YAML keys (e.g. "routes", "upstreams") to their position in the parsed config,
+    // so logs are ordered by the same category sequence as the config file
+    const CATEGORY_ORDER: Record<string, number> = Object.fromEntries(
+        Object.keys(config ?? {}).map((k, i) => [k, i])
+    );
+
+    // sorts two logs by their JSON pointer path (e.g. "/routes/2/plugins/limit-req") so the
+    // error list mirrors top-to-bottom reading order in the YAML editor:
+    //   1. logs without a path (global messages like "Configuration is VALID") sort first
+    //   2. first segment: category order from CATEGORY_DEFINITIONS (routes before upstreams, etc.)
+    //   3. second segment: array index as a number (route 0 before route 10)
+    //   4. remaining segments: alphabetical field/plugin name
+    const sortByPath = (a: ValidationLog, b: ValidationLog): number => {
+        if (!a.path && !b.path) return 0;
+        if (!a.path) return -1;
+        if (!b.path) return 1;
+        const aParts = a.path.split('/').filter(Boolean);
+        const bParts = b.path.split('/').filter(Boolean);
+        for (let i = 0; i < Math.min(aParts.length, bParts.length); i++) {
+            const aSeg = aParts[i];
+            const bSeg = bParts[i];
+            if (i === 0) {
+                // sort by category position; unknown categories fall to the end
+                const aOrder = CATEGORY_ORDER[aSeg] ?? Infinity;
+                const bOrder = CATEGORY_ORDER[bSeg] ?? Infinity;
+                if (aOrder !== bOrder) return aOrder - bOrder;
+            } else {
+                // numeric segments (array indices) are compared as integers to avoid "10" < "2"
+                const aNum = parseInt(aSeg, 10);
+                const bNum = parseInt(bSeg, 10);
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                    if (aNum !== bNum) return aNum - bNum;
+                } else {
+                    const cmp = aSeg.localeCompare(bSeg);
+                    if (cmp !== 0) return cmp;
+                }
+            }
+        }
+        // shorter paths sort before longer ones with the same prefix
+        return aParts.length - bParts.length;
+    };
+
+    const schemeLogs = localErrors.length > 0 ? logs.filter(l => l.type !== 'success') : logs;
     const displayLogs = [
         ...localErrors,
-        ...(localErrors.length > 0 ? logs.filter(l => l.type !== 'success') : logs),
-        ...refLogs,
+        ...[...schemeLogs, ...refLogs].sort(sortByPath),
     ];
 
     const tabToggle = (
