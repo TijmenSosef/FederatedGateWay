@@ -9,6 +9,7 @@ import styles from './HistoryPage.module.css';
 const CURRENT_VERSION = '__current__';
 const GITHUB_STORAGE_KEY = 'github-settings';
 const GITLAB_STORAGE_KEY = 'gitlab-settings';
+const GITEA_STORAGE_KEY = 'gitea-settings';
 const PROVIDER_STORAGE_KEY = 'git-provider';
 
 interface GithubSettings {
@@ -24,6 +25,14 @@ interface GitlabSettings {
     gitlabProject: string;
     gitlabBranch: string;
     gitlabFilePath: string;
+}
+
+interface GiteaSettings {
+    giteaToken: string;
+    giteaHost: string;
+    giteaRepo: string;
+    giteaBranch: string;
+    giteaFilePath: string;
 }
 
 function loadGithubSettings(): GithubSettings {
@@ -42,9 +51,18 @@ function loadGitlabSettings(): GitlabSettings {
     return { gitlabToken: '', gitlabHost: '', gitlabProject: '', gitlabBranch: '', gitlabFilePath: '' };
 }
 
-function loadProvider(): 'github' | 'gitlab' {
+function loadGiteaSettings(): GiteaSettings {
+    try {
+        const stored = localStorage.getItem(GITEA_STORAGE_KEY);
+        if (stored) return JSON.parse(stored);
+    } catch {}
+    return { giteaToken: '', giteaHost: '', giteaRepo: '', giteaBranch: '', giteaFilePath: '' };
+}
+
+function loadProvider(): 'github' | 'gitlab' | 'gitea' {
     const stored = localStorage.getItem(PROVIDER_STORAGE_KEY);
-    return stored === 'gitlab' ? 'gitlab' : 'github';
+    if (stored === 'gitlab' || stored === 'gitea') return stored;
+    return 'github';
 }
 
 export const HistoryPage: React.FC = () => {
@@ -60,16 +78,19 @@ export const HistoryPage: React.FC = () => {
     const [pendingRestoreVersion, setPendingRestoreVersion] = useState<VersionSummary | null>(null);
 
     const [settingsOpen, setSettingsOpen] = useState(false);
-    const [provider, setProvider] = useState<'github' | 'gitlab'>(loadProvider);
-    const [providerDraft, setProviderDraft] = useState<'github' | 'gitlab'>(loadProvider);
+    const [provider, setProvider] = useState<'github' | 'gitlab' | 'gitea'>(loadProvider);
+    const [providerDraft, setProviderDraft] = useState<'github' | 'gitlab' | 'gitea'>(loadProvider);
     const [githubSettings, setGithubSettings] = useState<GithubSettings>(loadGithubSettings);
     const [githubDraft, setGithubDraft] = useState<GithubSettings>(loadGithubSettings);
     const [gitlabSettings, setGitlabSettings] = useState<GitlabSettings>(loadGitlabSettings);
     const [gitlabDraft, setGitlabDraft] = useState<GitlabSettings>(loadGitlabSettings);
+    const [giteaSettings, setGiteaSettings] = useState<GiteaSettings>(loadGiteaSettings);
+    const [giteaDraft, setGiteaDraft] = useState<GiteaSettings>(loadGiteaSettings);
 
     const openSettings = () => {
         setGithubDraft(githubSettings);
         setGitlabDraft(gitlabSettings);
+        setGiteaDraft(giteaSettings);
         setProviderDraft(provider);
         setSettingsOpen(true);
     };
@@ -82,16 +103,23 @@ export const HistoryPage: React.FC = () => {
             || gitlabDraft.gitlabBranch !== gitlabSettings.gitlabBranch
             || gitlabDraft.gitlabFilePath !== gitlabSettings.gitlabFilePath
             || gitlabDraft.gitlabHost !== gitlabSettings.gitlabHost;
+        const giteaRepoChanged = giteaDraft.giteaRepo !== giteaSettings.giteaRepo
+            || giteaDraft.giteaBranch !== giteaSettings.giteaBranch
+            || giteaDraft.giteaFilePath !== giteaSettings.giteaFilePath
+            || giteaDraft.giteaHost !== giteaSettings.giteaHost;
         const providerChanged = providerDraft !== provider;
         const repoChanged = providerChanged
             || (providerDraft === 'github' && githubRepoChanged)
-            || (providerDraft === 'gitlab' && gitlabRepoChanged);
+            || (providerDraft === 'gitlab' && gitlabRepoChanged)
+            || (providerDraft === 'gitea' && giteaRepoChanged);
 
         setProvider(providerDraft);
         setGithubSettings(githubDraft);
         setGitlabSettings(gitlabDraft);
+        setGiteaSettings(giteaDraft);
         localStorage.setItem(GITHUB_STORAGE_KEY, JSON.stringify(githubDraft));
         localStorage.setItem(GITLAB_STORAGE_KEY, JSON.stringify(gitlabDraft));
+        localStorage.setItem(GITEA_STORAGE_KEY, JSON.stringify(giteaDraft));
         localStorage.setItem(PROVIDER_STORAGE_KEY, providerDraft);
         setSettingsOpen(false);
         if (repoChanged) {
@@ -103,6 +131,7 @@ export const HistoryPage: React.FC = () => {
     const cancelSettings = () => {
         setGithubDraft(githubSettings);
         setGitlabDraft(gitlabSettings);
+        setGiteaDraft(giteaSettings);
         setProviderDraft(provider);
         setSettingsOpen(false);
     };
@@ -241,8 +270,8 @@ export const HistoryPage: React.FC = () => {
         loadDiff(fromId, e.target.value);
     };
 
-    const providerLabel = provider === 'github' ? 'GitHub' : 'GitLab';
-    const providerBadgeClass = provider === 'github' ? styles.providerBadgeGithub : styles.providerBadgeGitlab;
+    const providerLabel = provider === 'github' ? 'GitHub' : provider === 'gitlab' ? 'GitLab' : 'Gitea';
+    const providerBadgeClass = provider === 'github' ? styles.providerBadgeGithub : provider === 'gitlab' ? styles.providerBadgeGitlab : styles.providerBadgeGitea;
 
     return (
         <div className={`container ${styles.page}`}>
@@ -277,6 +306,12 @@ export const HistoryPage: React.FC = () => {
                                 onClick={() => setProviderDraft('gitlab')}
                             >
                                 GitLab
+                            </button>
+                            <button
+                                className={`text-small ${styles.providerTab} ${providerDraft === 'gitea' ? styles.providerTabActive : ''}`}
+                                onClick={() => setProviderDraft('gitea')}
+                            >
+                                Gitea
                             </button>
                         </div>
                     </div>
@@ -376,6 +411,61 @@ export const HistoryPage: React.FC = () => {
                                     placeholder="glpat-..."
                                     value={gitlabDraft.gitlabToken}
                                     onChange={e => setGitlabDraft(prev => ({ ...prev, gitlabToken: e.target.value }))}
+                                />
+                            </label>
+                        </div>
+                    )}
+
+                    {providerDraft === 'gitea' && (
+                        <div className={styles.settingsFields}>
+                            <label className={`${styles.settingsLabel} ${styles.settingsLabelFull}`}>
+                                <span className="text-small">Instance URL</span>
+                                <input
+                                    className={styles.saveInput}
+                                    type="text"
+                                    placeholder="https://gitea.example.com"
+                                    value={giteaDraft.giteaHost}
+                                    onChange={e => setGiteaDraft(prev => ({ ...prev, giteaHost: e.target.value }))}
+                                />
+                            </label>
+                            <label className={styles.settingsLabel}>
+                                <span className="text-small">Repository</span>
+                                <input
+                                    className={styles.saveInput}
+                                    type="text"
+                                    placeholder="owner/repo"
+                                    value={giteaDraft.giteaRepo}
+                                    onChange={e => setGiteaDraft(prev => ({ ...prev, giteaRepo: e.target.value }))}
+                                />
+                            </label>
+                            <label className={styles.settingsLabel}>
+                                <span className="text-small">Branch</span>
+                                <input
+                                    className={styles.saveInput}
+                                    type="text"
+                                    placeholder="e.g. main"
+                                    value={giteaDraft.giteaBranch}
+                                    onChange={e => setGiteaDraft(prev => ({ ...prev, giteaBranch: e.target.value }))}
+                                />
+                            </label>
+                            <label className={styles.settingsLabel}>
+                                <span className="text-small">Config file path</span>
+                                <input
+                                    className={styles.saveInput}
+                                    type="text"
+                                    placeholder="e.g. config/apisix.yaml"
+                                    value={giteaDraft.giteaFilePath}
+                                    onChange={e => setGiteaDraft(prev => ({ ...prev, giteaFilePath: e.target.value }))}
+                                />
+                            </label>
+                            <label className={styles.settingsLabel}>
+                                <span className="text-small">Access token</span>
+                                <input
+                                    className={styles.saveInput}
+                                    type="password"
+                                    placeholder="your-gitea-token"
+                                    value={giteaDraft.giteaToken}
+                                    onChange={e => setGiteaDraft(prev => ({ ...prev, giteaToken: e.target.value }))}
                                 />
                             </label>
                         </div>

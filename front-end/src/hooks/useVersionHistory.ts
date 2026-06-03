@@ -3,6 +3,7 @@ import { client } from '../api/client';
 
 const GITHUB_STORAGE_KEY = 'github-settings';
 const GITLAB_STORAGE_KEY = 'gitlab-settings';
+const GITEA_STORAGE_KEY = 'gitea-settings';
 const PROVIDER_STORAGE_KEY = 'git-provider';
 
 function getProviderHeaders(): Record<string, string> {
@@ -18,6 +19,18 @@ function getProviderHeaders(): Record<string, string> {
                 'X-Gitlab-Project': s.gitlabProject || '',
                 'X-Gitlab-Branch': s.gitlabBranch || '',
                 'X-Gitlab-File-Path': s.gitlabFilePath || '',
+            };
+        }
+        if (provider === 'gitea') {
+            const stored = localStorage.getItem(GITEA_STORAGE_KEY);
+            const s = stored ? JSON.parse(stored) : {};
+            return {
+                'X-Git-Provider': 'gitea',
+                'X-Gitea-Token': s.giteaToken || '',
+                'X-Gitea-Host': s.giteaHost || '',
+                'X-Gitea-Repo': s.giteaRepo || '',
+                'X-Gitea-Branch': s.giteaBranch || '',
+                'X-Gitea-File-Path': s.giteaFilePath || '',
             };
         }
         const stored = localStorage.getItem(GITHUB_STORAGE_KEY);

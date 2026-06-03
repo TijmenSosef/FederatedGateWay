@@ -208,6 +208,12 @@
     border-color: rgba(252, 109, 38, 0.35);
 }
 
+.providerBadgeGitea {
+    background: rgba(96, 153, 38, 0.1);
+    color: #3d7010;
+    border-color: rgba(96, 153, 38, 0.35);
+}
+
 /* makes a settings field span both columns of the 2-col grid */
 .settingsLabelFull {
     grid-column: 1 / -1;

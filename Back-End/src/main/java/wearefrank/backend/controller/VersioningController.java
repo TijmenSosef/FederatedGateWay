@@ -1,9 +1,11 @@
 package wearefrank.backend.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import wearefrank.backend.dto.ConfigVersionDto;
 import wearefrank.backend.service.VersioningService;
+import wearefrank.backend.service.versioning.*;
 
 import java.util.List;
 
@@ -20,74 +22,65 @@ public class VersioningController {
 
     // Git settings are passed as request headers on every call rather than stored server-side,
     // so the browser can persist them locally without the backend ever holding someone's token.
+
     @GetMapping
-    public List<ConfigVersionDto.Summary> listVersions(
-            @RequestHeader(value = "X-Git-Provider", defaultValue = "github") String provider,
-            @RequestHeader(value = "X-Github-Token", defaultValue = "") String githubToken,
-            @RequestHeader(value = "X-Github-Repo", defaultValue = "") String githubRepo,
-            @RequestHeader(value = "X-Github-Branch", defaultValue = "") String githubBranch,
-            @RequestHeader(value = "X-Github-File-Path", defaultValue = "") String githubFilePath,
-            @RequestHeader(value = "X-Gitlab-Token", defaultValue = "") String gitlabToken,
-            @RequestHeader(value = "X-Gitlab-Host", defaultValue = "") String gitlabHost,
-            @RequestHeader(value = "X-Gitlab-Project", defaultValue = "") String gitlabProject,
-            @RequestHeader(value = "X-Gitlab-Branch", defaultValue = "") String gitlabBranch,
-            @RequestHeader(value = "X-Gitlab-File-Path", defaultValue = "") String gitlabFilePath) {
-        return versioningService.listVersions(provider,
-                githubToken, githubRepo, githubBranch, githubFilePath,
-                gitlabToken, gitlabHost, gitlabProject, gitlabBranch, gitlabFilePath);
+    public List<ConfigVersionDto.Summary> listVersions(HttpServletRequest req) {
+        return versioningService.listVersions(provider(req), githubConfig(req), gitlabConfig(req), giteaConfig(req));
     }
 
     @GetMapping("/{id}")
-    public ConfigVersionDto getVersion(
-            @PathVariable String id,
-            @RequestHeader(value = "X-Git-Provider", defaultValue = "github") String provider,
-            @RequestHeader(value = "X-Github-Token", defaultValue = "") String githubToken,
-            @RequestHeader(value = "X-Github-Repo", defaultValue = "") String githubRepo,
-            @RequestHeader(value = "X-Github-Branch", defaultValue = "") String githubBranch,
-            @RequestHeader(value = "X-Github-File-Path", defaultValue = "") String githubFilePath,
-            @RequestHeader(value = "X-Gitlab-Token", defaultValue = "") String gitlabToken,
-            @RequestHeader(value = "X-Gitlab-Host", defaultValue = "") String gitlabHost,
-            @RequestHeader(value = "X-Gitlab-Project", defaultValue = "") String gitlabProject,
-            @RequestHeader(value = "X-Gitlab-Branch", defaultValue = "") String gitlabBranch,
-            @RequestHeader(value = "X-Gitlab-File-Path", defaultValue = "") String gitlabFilePath) {
-        return versioningService.getVersion(id, provider,
-                githubToken, githubRepo, githubBranch, githubFilePath,
-                gitlabToken, gitlabHost, gitlabProject, gitlabBranch, gitlabFilePath);
+    public ConfigVersionDto getVersion(@PathVariable String id, HttpServletRequest req) {
+        return versioningService.getVersion(id, provider(req), githubConfig(req), gitlabConfig(req), giteaConfig(req));
     }
 
     @PostMapping
-    public ConfigVersionDto.Summary saveVersion(
-            @RequestBody ConfigVersionDto.SaveRequest request,
-            @RequestHeader(value = "X-Git-Provider", defaultValue = "github") String provider,
-            @RequestHeader(value = "X-Github-Token", defaultValue = "") String githubToken,
-            @RequestHeader(value = "X-Github-Repo", defaultValue = "") String githubRepo,
-            @RequestHeader(value = "X-Github-Branch", defaultValue = "") String githubBranch,
-            @RequestHeader(value = "X-Github-File-Path", defaultValue = "") String githubFilePath,
-            @RequestHeader(value = "X-Gitlab-Token", defaultValue = "") String gitlabToken,
-            @RequestHeader(value = "X-Gitlab-Host", defaultValue = "") String gitlabHost,
-            @RequestHeader(value = "X-Gitlab-Project", defaultValue = "") String gitlabProject,
-            @RequestHeader(value = "X-Gitlab-Branch", defaultValue = "") String gitlabBranch,
-            @RequestHeader(value = "X-Gitlab-File-Path", defaultValue = "") String gitlabFilePath) {
-        return versioningService.saveVersion(request.message(), request.content(), provider,
-                githubToken, githubRepo, githubBranch, githubFilePath,
-                gitlabToken, gitlabHost, gitlabProject, gitlabBranch, gitlabFilePath);
+    public ConfigVersionDto.Summary saveVersion(@RequestBody ConfigVersionDto.SaveRequest request, HttpServletRequest req) {
+        return versioningService.saveVersion(request.message(), request.content(), provider(req), githubConfig(req), gitlabConfig(req), giteaConfig(req));
     }
 
     // returns plain text so the frontend can load the file content directly into the editor
     @GetMapping(value = "/file", produces = MediaType.TEXT_PLAIN_VALUE)
-    public String readCurrentFile(
-            @RequestHeader(value = "X-Git-Provider", defaultValue = "github") String provider,
-            @RequestHeader(value = "X-Github-Token", defaultValue = "") String githubToken,
-            @RequestHeader(value = "X-Github-Repo", defaultValue = "") String githubRepo,
-            @RequestHeader(value = "X-Github-Branch", defaultValue = "") String githubBranch,
-            @RequestHeader(value = "X-Github-File-Path", defaultValue = "") String githubFilePath,
-            @RequestHeader(value = "X-Gitlab-Token", defaultValue = "") String gitlabToken,
-            @RequestHeader(value = "X-Gitlab-Host", defaultValue = "") String gitlabHost,
-            @RequestHeader(value = "X-Gitlab-Project", defaultValue = "") String gitlabProject,
-            @RequestHeader(value = "X-Gitlab-Branch", defaultValue = "") String gitlabBranch,
-            @RequestHeader(value = "X-Gitlab-File-Path", defaultValue = "") String gitlabFilePath) {
-        return versioningService.readCurrentFile(provider,
-                githubToken, githubRepo, githubBranch, githubFilePath,
-                gitlabToken, gitlabHost, gitlabProject, gitlabBranch, gitlabFilePath);
+    public String readCurrentFile(HttpServletRequest req) {
+        return versioningService.readCurrentFile(provider(req), githubConfig(req), gitlabConfig(req), giteaConfig(req));
+    }
+
+    private String provider(HttpServletRequest req) {
+        return header(req, "X-Git-Provider", "github");
+    }
+
+    private GitHubConfig githubConfig(HttpServletRequest req) {
+        return new GitHubConfig(
+                header(req, "X-Github-Token"),
+                header(req, "X-Github-Repo"),
+                header(req, "X-Github-Branch"),
+                header(req, "X-Github-File-Path"));
+    }
+
+    private GitLabConfig gitlabConfig(HttpServletRequest req) {
+        return new GitLabConfig(
+                header(req, "X-Gitlab-Token"),
+                header(req, "X-Gitlab-Host"),
+                header(req, "X-Gitlab-Project"),
+                header(req, "X-Gitlab-Branch"),
+                header(req, "X-Gitlab-File-Path"));
+    }
+
+    private GiteaConfig giteaConfig(HttpServletRequest req) {
+        return new GiteaConfig(
+                header(req, "X-Gitea-Token"),
+                header(req, "X-Gitea-Host"),
+                header(req, "X-Gitea-Repo"),
+                header(req, "X-Gitea-Branch"),
+                header(req, "X-Gitea-File-Path"));
+    }
+
+    private String header(HttpServletRequest req, String name) {
+        String value = req.getHeader(name);
+        return value != null ? value : "";
+    }
+
+    private String header(HttpServletRequest req, String name, String defaultValue) {
+        String value = req.getHeader(name);
+        return value != null ? value : defaultValue;
     }
 }
