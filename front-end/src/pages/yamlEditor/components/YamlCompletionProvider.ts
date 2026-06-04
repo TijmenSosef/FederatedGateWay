@@ -1,7 +1,8 @@
 import type * as MonacoType from 'monaco-editor';
 import type { JSONSchema as MonacoJsonSchema } from 'monaco-yaml';
-import type { SchemaCatalog } from '../../../actions/SchemaValidation';
+import type { ApisixConfig, SchemaCatalog } from '../../../actions/SchemaValidation';
 import { getSchemaPathAtCursor, getSiblingKeysAtCursor } from '../yamlLineUtils';
+import { CATEGORY_DEFINITIONS, getDisplayId } from '../../../config/categoryDefinitions';
 
 // Follows a $ref pointer to its target in the defs dict.
 // The APISIX schema itself does not use $ref - we do write $ref in SchemaValidation.ts
@@ -47,6 +48,7 @@ export class YamlCompletionProvider {
     register(
         getCategoryLineMap: () => Map<number, string>,
         getSchema: () => SchemaCatalog | null | undefined,
+        getConfig: () => ApisixConfig | null | undefined,
     ): MonacoType.IDisposable {
         const monaco = this.monaco;
 
@@ -90,7 +92,7 @@ export class YamlCompletionProvider {
                                     ? monaco.languages.CompletionItemKind.Module
                                     : monaco.languages.CompletionItemKind.Field,
                                 documentation: description ?? '',
-                                insertText: key,
+                                insertText: `${key}: `,
                                 range,
                                 detail: type ?? '',
                             };
@@ -105,8 +107,8 @@ export class YamlCompletionProvider {
                         return enumValues.map(v => ({
                             label: String(v),
                             kind: monaco.languages.CompletionItemKind.Value,
-                            insertText: String(v),
-                            range,
+                            insertText: typeof v === 'string' ? quoteString(String(v)) : String(v),
+                            range: typeof v === 'string' ? stringRange : range,
                             detail: schemaType ?? '',
                         }));
                     }
@@ -135,7 +137,46 @@ export class YamlCompletionProvider {
                 const keyMatch = lineText.match(/^\s*(?:-\s+)?([^:]+):\s*/);
                 const currentLineKey = keyMatch ? keyMatch[1].trim() : null;
 
+                // Determines the insert range for a string value, extending leftward to cover
+                // any already-typed leading quote so we don't end up with double quotes.
+                const charBeforeWord = lineText[word.startColumn - 2];
+                const stringRange = charBeforeWord === '"'
+                    ? { ...range, startColumn: range.startColumn - 1 }
+                    : range;
+                const quoteString = (s: string) => `"${s}"`;
+
                 if (isValuePosition && currentLineKey) {
+                    // Reference field autocomplete: suggest IDs from the target category.
+                    const categoryDef = CATEGORY_DEFINITIONS[category];
+                    const refField = categoryDef?.referenceFields.find(r => r.field === currentLineKey);
+                    if (refField) {
+                        const config = getConfig();
+                        const targetEntries = (config as Record<string, unknown> | null | undefined)?.[refField.targetCategory + 's'];
+                        if (Array.isArray(targetEntries)) {
+                            const targetDef = CATEGORY_DEFINITIONS[refField.targetCategory];
+                            const idField = targetDef?.idField ?? 'id';
+                            const suggestions = (targetEntries as Record<string, unknown>[])
+                                .filter(e => e && typeof e === 'object')
+                                .flatMap(e => {
+                                    const id = (e as Record<string, unknown>)[idField];
+                                    if (id === undefined || id === null || String(id).trim() === '') return [];
+                                    const idStr = String(id);
+                                    const isStringId = typeof id === 'string';
+                                    const displayId = getDisplayId(refField.targetCategory, e as Record<string, unknown>);
+                                    return [{
+                                        label: idStr,
+                                        kind: monaco.languages.CompletionItemKind.Reference,
+                                        insertText: isStringId ? quoteString(idStr) : idStr,
+                                        range: isStringId ? stringRange : range,
+                                        detail: targetDef?.label ?? refField.targetCategory,
+                                        documentation: displayId !== idStr ? displayId : '',
+                                    }];
+                                });
+                            return { suggestions };
+                        }
+                        return { suggestions: [] };
+                    }
+
                     const valuePath = [...path, currentLineKey];
                     const pluginsIdx = valuePath.indexOf('plugins');
 
@@ -171,7 +212,7 @@ export class YamlCompletionProvider {
                                     label: name,
                                     kind: monaco.languages.CompletionItemKind.Module,
                                     documentation: '',
-                                    insertText: name,
+                                    insertText: `${name}: `,
                                     range,
                                     detail: 'plugin',
                                 })),

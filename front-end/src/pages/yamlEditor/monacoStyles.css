@@ -9,6 +9,37 @@
     cursor: pointer !important;
 }
 
+/* Warning line background highlighting */
+.monaco-warning-line {
+    background-color: rgba(251, 191, 36, 0.15) !important;
+}
+
+/* Warning line decoration strip (narrow left bar) */
+.monaco-warning-line-number {
+    background-color: rgba(251, 191, 36, 0.65) !important;
+    cursor: pointer !important;
+}
+
+/* Inline error hint (e.g. "x Must have required property 'uri'") */
+.monaco-error-hint {
+    opacity: 0.55;
+    font-style: italic;
+    pointer-events: none;
+}
+
+[data-theme="dark"]  .monaco-editor .monaco-error-hint { color: #ff6b6b !important; }
+[data-theme="light"] .monaco-editor .monaco-error-hint { color: #c92a2a !important; }
+
+/* Inline warning hint */
+.monaco-warning-hint {
+    opacity: 0.55;
+    font-style: italic;
+    pointer-events: none;
+}
+
+[data-theme="dark"]  .monaco-editor .monaco-warning-hint { color: #fbbf24 !important; }
+[data-theme="light"] .monaco-editor .monaco-warning-hint { color: #92400e !important; }
+
 /* $variable and ${variable} placeholder highlighting */
 .monaco-placeholder-var { color: #6bb5d6 !important; }
 
@@ -18,6 +49,9 @@
     opacity: 0.75;
 }
 
+[data-theme="dark"]  .monaco-ref-value { border-bottom-color: #61afef; }
+[data-theme="light"] .monaco-ref-value { border-bottom-color: #0969da; }
+
 /* Inline reference hint (e.g. "→ Upstream: my-upstream") */
 .monaco-ref-hint {
     opacity: 0.45;
@@ -25,8 +59,8 @@
     pointer-events: none;
 }
 
-[data-theme="dark"] .monaco-ref-hint  { color: #aaaaaa !important; }
-[data-theme="light"] .monaco-ref-hint { color: #888888 !important; }
+[data-theme="dark"]  .monaco-editor .monaco-ref-hint { color: #61afef !important; }
+[data-theme="light"] .monaco-editor .monaco-ref-hint { color: #0969da !important; }
 
 /* Category color strip decorations (className, isWholeLine) */
 .cat-strip-route,
@@ -39,6 +73,7 @@
     background: transparent !important;
     border-left-width: 2px !important;
     border-left-style: solid !important;
+    margin-right: 4px !important;
 }
 
 .cat-strip-route         { border-left-color: #3b82f6 !important; }

@@ -28,6 +28,7 @@ const YamlEditor = () => {
     const [fillDefault, setFillDefault] = useState(appSettings.ui.configFillDefault);
     const scrollKeyRef = useRef(0);
     const scrolledFocusRef = useRef<string | null>(null);
+    const validationDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [scrollToTarget, setScrollToTarget] = useState<{ path: string; key: number } | null>(null);
     const [rightTab, setRightTab] = useState<'validation' | 'references'>('validation');
     const [refLogs, setRefLogs] = useState<ValidationLog[]>([]);
@@ -57,10 +58,10 @@ const YamlEditor = () => {
 
     // sorts two logs by their JSON pointer path (e.g. "/routes/2/plugins/limit-req") so the
     // error list mirrors top-to-bottom reading order in the YAML editor:
-    //   1. logs without a path (global messages like "Configuration is VALID") sort first
-    //   2. first segment: category order from CATEGORY_DEFINITIONS (routes before upstreams, etc.)
-    //   3. second segment: array index as a number (route 0 before route 10)
-    //   4. remaining segments: alphabetical field/plugin name
+    // 1. logs without a path (global messages like "Configuration is VALID") sort first
+    // 2. first segment: category order from CATEGORY_DEFINITIONS (routes before upstreams, etc.)
+    // 3. second segment: array index as a number (route 0 before route 10)
+    // 4. other remaining segments: alphabetical field/plugin name
     const sortByPath = (a: ValidationLog, b: ValidationLog): number => {
         if (!a.path && !b.path) return 0;
         if (!a.path) return -1;
@@ -116,7 +117,8 @@ const YamlEditor = () => {
 
     const handleConfigChange = (newValue: string) => {
         setConfigText(newValue);
-        setGlobalConfig(newValue);
+        if (validationDebounceRef.current) clearTimeout(validationDebounceRef.current);
+        validationDebounceRef.current = setTimeout(() => setGlobalConfig(newValue), 400);
     };
 
     const toggleFillDefault = useCallback(() => {
@@ -191,7 +193,6 @@ const YamlEditor = () => {
         // Only scroll once per unique focus target. Without this guard, any
         // config change (e.g. a keystroke) would re-trigger the scroll because
         // `config` is a dependency needed to resolve the array index.
-        // The nonce (_n) increments on each click so repeated clicks on the
         // same entry always produce a new key and trigger a fresh scroll.
         const focusKey = `${focusCategory}:${focusId}:${focusNonce}`;
         if (scrolledFocusRef.current === focusKey) return;

@@ -51,8 +51,10 @@ function buildApisixSchema(catalog: SchemaCatalog): MonacoJsonSchema {
 type ParsedDoc = ReturnType<typeof parseYamlDoc>;
 
 // Maps each error/warning log entry and YAML syntax error to the line numbers they cover.
+// Each line can accumulate multiple logs; errors and warnings are tracked separately.
 function buildErrorAnnotations(parsedDoc: ParsedDoc, validationLogs: ValidationLog[]) {
-    const errorLineLogMap = new Map<number, ValidationLog>();
+    const errorLineLogMap = new Map<number, ValidationLog[]>();
+    const warningLineLogMap = new Map<number, ValidationLog[]>();
     const syntaxErrorLines = new Set<number>();
     const { doc, lineCounter } = parsedDoc;
 
@@ -68,12 +70,24 @@ function buildErrorAnnotations(parsedDoc: ParsedDoc, validationLogs: ValidationL
         if (!node?.range) continue;
         const startLine = lineCounter.linePos(node.range[0]).line;
         const endLine = lineCounter.linePos(node.range[1]).line;
+        const map = log.type === 'error' ? errorLineLogMap : warningLineLogMap;
         for (let i = startLine; i <= endLine; i++) {
-            if (!errorLineLogMap.has(i)) errorLineLogMap.set(i, log);
+            const existing = map.get(i);
+            if (existing) existing.push(log);
+            else map.set(i, [log]);
         }
     }
 
-    return { errorLineLogMap, syntaxErrorLines };
+    return { errorLineLogMap, warningLineLogMap, syntaxErrorLines };
+}
+
+// Builds the inline hint text shown at the end of an error/warning line.
+function buildHintContent(logs: ValidationLog[]): string {
+    const first = logs[0].message;
+    const prefix = logs[0].type === 'error' ? '\u00d7' : '!';
+    const truncated = first.length > 55 ? first.slice(0, 52) + '...' : first;
+    if (logs.length > 1) return `  ${prefix} ${truncated} (+${logs.length - 1} more)`;
+    return `  ${prefix} ${truncated}`;
 }
 
 // Finds every reference field (e.g. upstream_id on a route) and computes
@@ -95,7 +109,7 @@ function buildReferenceAnnotations(parsedDoc: ParsedDoc, config: ApisixConfig) {
 
             for (const ref of def.referenceFields) {
                 const val = (entry as Record<string, unknown>)[ref.field];
-                if (typeof val !== 'string') continue;
+                if (typeof val !== 'string' && typeof val !== 'number') continue;
 
                 const rawTargetEntries = (config as Record<string, unknown>)[ref.targetCategory + 's'];
                 if (!Array.isArray(rawTargetEntries)) continue;
@@ -146,19 +160,23 @@ export const ConfigEditor = ({
     const monacoRef = useRef<typeof MonacoType | null>(null);
     const monacoYamlRef = useRef<MonacoYaml | null>(null);
     const schemaRef = useRef<SchemaCatalog | null | undefined>(schema);
+    const configRef = useRef<ApisixConfig | null | undefined>(config);
     const errorDecorationsRef = useRef<MonacoType.editor.IEditorDecorationsCollection | null>(null);
     const categoryDecorationsRef = useRef<MonacoType.editor.IEditorDecorationsCollection | null>(null);
     const placeholderDecorationsRef = useRef<MonacoType.editor.IEditorDecorationsCollection | null>(null);
     const referenceDecorationsRef = useRef<MonacoType.editor.IEditorDecorationsCollection | null>(null);
     const referenceUnderlineDecorationsRef = useRef<MonacoType.editor.IEditorDecorationsCollection | null>(null);
     const categoryLineMapRef = useRef<Map<number, string>>(new Map());
-    const errorLineLogMapRef = useRef<Map<number, ValidationLog>>(new Map());
+    const errorLineLogMapRef = useRef<Map<number, ValidationLog[]>>(new Map());
+    const warningLineLogMapRef = useRef<Map<number, ValidationLog[]>>(new Map());
     const referenceHintMapRef = useRef<Map<number, string>>(new Map());
     const referenceTargetMapRef = useRef<Map<number, string>>(new Map());
     const referenceValueRangesRef = useRef<Map<number, { startCol: number; endCol: number }>>(new Map());
     const onReferenceNavigateRef = useRef(onReferenceNavigate);
     const onLineClickRef = useRef(onLineClick);
     const completionProviderRef = useRef<MonacoType.IDisposable | null>(null);
+    const definitionProviderRef = useRef<MonacoType.IDisposable | null>(null);
+    const parsedDocRef = useRef<ParsedDoc | null>(null);
     const [visibleCategory, setVisibleCategory] = useState<string | null>(null);
     const [monacoTheme, setMonacoTheme] = useState(getMonacoTheme);
 
@@ -166,7 +184,10 @@ export const ConfigEditor = ({
     useEffect(() => { onReferenceNavigateRef.current = onReferenceNavigate; }, [onReferenceNavigate]);
 
     useEffect(() => {
-        return () => { completionProviderRef.current?.dispose(); };
+        return () => {
+            completionProviderRef.current?.dispose();
+            definitionProviderRef.current?.dispose();
+        };
     }, []);
 
     // Watch for data-theme attribute changes to switch Monaco theme
@@ -198,8 +219,12 @@ export const ConfigEditor = ({
         return starts;
     }, [categoryLineMap]);
 
-    const { errorLineLogMap, syntaxErrorLines } = useMemo(() => {
-        if (!parsedDoc) return { errorLineLogMap: new Map<number, ValidationLog>(), syntaxErrorLines: new Set<number>() };
+    const { errorLineLogMap, warningLineLogMap, syntaxErrorLines } = useMemo(() => {
+        if (!parsedDoc) return {
+            errorLineLogMap: new Map<number, ValidationLog[]>(),
+            warningLineLogMap: new Map<number, ValidationLog[]>(),
+            syntaxErrorLines: new Set<number>(),
+        };
         return buildErrorAnnotations(parsedDoc, validationLogs);
     }, [parsedDoc, validationLogs]);
 
@@ -213,9 +238,13 @@ export const ConfigEditor = ({
 
     useEffect(() => { categoryLineMapRef.current = categoryLineMap; }, [categoryLineMap]);
     useEffect(() => { errorLineLogMapRef.current = errorLineLogMap; }, [errorLineLogMap]);
+    useEffect(() => { warningLineLogMapRef.current = warningLineLogMap; }, [warningLineLogMap]);
     useEffect(() => { referenceHintMapRef.current = referenceHintMap; }, [referenceHintMap]);
     useEffect(() => { referenceTargetMapRef.current = referenceTargetMap; }, [referenceTargetMap]);
     useEffect(() => { referenceValueRangesRef.current = referenceValueRanges; }, [referenceValueRanges]);
+    useEffect(() => { parsedDocRef.current = parsedDoc; }, [parsedDoc]);
+
+    useEffect(() => { configRef.current = config; }, [config]);
 
     // Push schema updates to the YAML language service
     useEffect(() => {
@@ -237,13 +266,43 @@ export const ConfigEditor = ({
 
         const decorations: MonacoType.editor.IModelDeltaDecoration[] = [];
         for (const line of syntaxErrorLines) {
-            decorations.push({ range: new monaco.Range(line, 1, line, 1), options: { isWholeLine: true, className: 'monaco-error-line' } });
+            decorations.push({
+                range: new monaco.Range(line, 1, line, 1),
+                options: {
+                    isWholeLine: true,
+                    className: 'monaco-error-line',
+                    after: { content: '  \u00d7 YAML syntax error', inlineClassName: 'monaco-error-hint' },
+                    hoverMessage: { value: 'YAML syntax error' },
+                },
+            });
         }
-        for (const line of errorLineLogMap.keys()) {
-            decorations.push({ range: new monaco.Range(line, 1, line, 1), options: { isWholeLine: true, className: 'monaco-error-line', linesDecorationsClassName: 'monaco-error-line-number' } });
+        for (const [line, logs] of errorLineLogMap) {
+            decorations.push({
+                range: new monaco.Range(line, 1, line, 1),
+                options: {
+                    isWholeLine: true,
+                    className: 'monaco-error-line',
+                    linesDecorationsClassName: 'monaco-error-line-number',
+                    after: { content: buildHintContent(logs), inlineClassName: 'monaco-error-hint' },
+                    hoverMessage: { value: logs.map(l => l.message).join('\n\n') },
+                },
+            });
+        }
+        for (const [line, logs] of warningLineLogMap) {
+            if (errorLineLogMap.has(line)) continue;
+            decorations.push({
+                range: new monaco.Range(line, 1, line, 1),
+                options: {
+                    isWholeLine: true,
+                    className: 'monaco-warning-line',
+                    linesDecorationsClassName: 'monaco-warning-line-number',
+                    after: { content: buildHintContent(logs), inlineClassName: 'monaco-warning-hint' },
+                    hoverMessage: { value: logs.map(l => l.message).join('\n\n') },
+                },
+            });
         }
         collection.set(decorations);
-    }, [errorLineLogMap, syntaxErrorLines]);
+    }, [errorLineLogMap, warningLineLogMap, syntaxErrorLines]);
 
     useEffect(() => {
         const editor = editorRef.current;
@@ -362,22 +421,38 @@ export const ConfigEditor = ({
                 e.target.type === monaco.editor.MouseTargetType.GUTTER_LINE_NUMBERS ||
                 e.target.type === monaco.editor.MouseTargetType.GUTTER_LINE_DECORATIONS;
             if (isGutter) {
-                const log = errorLineLogMapRef.current.get(line);
-                if (log) onLineClickRef.current?.(log);
+                const logs = errorLineLogMapRef.current.get(line) ?? warningLineLogMapRef.current.get(line);
+                if (logs?.length) onLineClickRef.current?.(logs[0]);
                 return;
             }
 
-            const isCtrl = e.event.ctrlKey || e.event.metaKey;
-            if (isCtrl) {
-                const targetPath = referenceTargetMapRef.current.get(line);
-                if (targetPath) onReferenceNavigateRef.current?.(targetPath);
-            }
         });
 
         completionProviderRef.current = new YamlCompletionProvider(monaco).register(
             () => categoryLineMapRef.current,
             () => schemaRef.current,
+            () => configRef.current,
         );
+
+        definitionProviderRef.current = monaco.languages.registerDefinitionProvider('yaml', {
+            provideDefinition(model, position) {
+                const line = position.lineNumber;
+                const valueRange = referenceValueRangesRef.current.get(line);
+                if (!valueRange) return null;
+                if (position.column < valueRange.startCol || position.column > valueRange.endCol) return null;
+                const targetPath = referenceTargetMapRef.current.get(line);
+                if (!targetPath || !parsedDocRef.current) return null;
+                const { doc, lineCounter } = parsedDocRef.current;
+                const node = resolvePathToNode(doc, targetPath);
+                if (!node?.range) return null;
+                const startPos = lineCounter.linePos(node.range[0]);
+                const lineLength = model.getLineContent(startPos.line).length;
+                return {
+                    uri: model.uri,
+                    range: new monaco.Range(startPos.line, 1, startPos.line, lineLength + 1),
+                };
+            },
+        });
     }, []);
 
     const handleJumpToCategory = useCallback((category: string) => {
@@ -472,12 +547,17 @@ export const ConfigEditor = ({
                         lineDecorationsWidth: 4,
                         glyphMargin: false,
                         folding: true,
+                        foldingStrategy: 'indentation',
                         automaticLayout: true,
                         overviewRulerBorder: false,
                         overviewRulerLanes: 0,
                         hideCursorInOverviewRuler: true,
+                        wordBasedSuggestions: 'off',
                         quickSuggestions: { other: true, comments: false, strings: true },
+                        suggestOnTriggerCharacters: true,
                         scrollbar: { vertical: 'auto', horizontal: 'auto' },
+                        links: false,
+                        stickyScroll: { enabled: false },
                     }}
                 />
             </div>
