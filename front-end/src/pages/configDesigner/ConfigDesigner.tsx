@@ -38,7 +38,16 @@ function deepSet(obj: Record<string, unknown>, path: string[], value: unknown): 
 // Skips empty values and handles comma-separated strings for array fields.
 function buildYamlObject(values: Record<string, unknown>, fields: SchemaField[]): Record<string, unknown> {
     const result: Record<string, unknown> = {};
-    const fieldMap = new Map(fields.map(f => [f.name, f]));
+    const fieldMap = new Map<string, SchemaField>();
+    for (const f of fields) {
+        if (f.type === 'oneof-group') {
+            for (const variant of f.variants) {
+                for (const sub of variant.fields) fieldMap.set(sub.name, sub);
+            }
+        } else {
+            fieldMap.set(f.name, f);
+        }
+    }
 
     for (const [key, raw] of Object.entries(values)) {
         if (raw === '' || raw === undefined || raw === null) continue;
@@ -115,6 +124,8 @@ export const ConfigDesigner = () => {
         loadValues,
         initialCategory,
         focusId: searchParams.get('focusId'),
+        configText: configText ?? '',
+        onDomainDetected: (d) => setDomain(d ?? ''),
     });
 
     // Extra validation: flag if the current id already exists in the config (duplicate check).
@@ -151,6 +162,7 @@ export const ConfigDesigner = () => {
         setConfig,
         editingEntry,
         onEditSaved: clearEditingEntry,
+        domain: domain || undefined,
     });
 
     // Config status badge: reflects yaml validity, schema errors, or a clean state.

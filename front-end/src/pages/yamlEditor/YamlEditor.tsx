@@ -10,7 +10,7 @@ import { useConfigManager } from '../../hooks/useConfigManager';
 import { useAppSettings } from '../../hooks/useAppSettings';
 import { useVersionHistory } from '../../hooks/useVersionHistory';
 import { checkReferences } from './actions/checkReferences';
-import { getDisplayId, CATEGORY_DEFINITIONS } from '../../config/categoryDefinitions';
+import { getDisplayId } from '../../config/categoryDefinitions';
 
 
 const YamlEditor = () => {
@@ -252,12 +252,18 @@ const YamlEditor = () => {
                     yamlValid={configYamlValid}
                     fillDefaults={fillDefault}
                     validationLogs={displayLogs}
+                    config={config}
+                    schema={schema}
                     onConfigChange={handleConfigChange}
                     onToggleWhitespace={() => setShowWhitespace(!showWhitespace)}
                     onToggleFillDefaults={toggleFillDefault}
                     onLineClick={log => {
                         setHighlightedLog(log);
                         setRightTab('validation');
+                    }}
+                    onReferenceNavigate={path => {
+                        scrollKeyRef.current += 1;
+                        setScrollToTarget({ path, key: scrollKeyRef.current });
                     }}
                     scrollToTarget={scrollToTarget}
                     onSaveVersion={handleSaveVersionClick}

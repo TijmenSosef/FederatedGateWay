@@ -1,0 +1,50 @@
+/* Error line background highlighting */
+.monaco-error-line {
+    background-color: rgba(255, 107, 107, 0.2) !important;
+}
+
+/* Error line decoration strip (narrow left bar) */
+.monaco-error-line-number {
+    background-color: rgba(255, 107, 107, 0.7) !important;
+    cursor: pointer !important;
+}
+
+/* $variable and ${variable} placeholder highlighting */
+.monaco-placeholder-var { color: #6bb5d6 !important; }
+
+/* Reference value underline (Ctrl+click to navigate) */
+.monaco-ref-value {
+    border-bottom: 1px dotted currentColor;
+    opacity: 0.75;
+}
+
+/* Inline reference hint (e.g. "→ Upstream: my-upstream") */
+.monaco-ref-hint {
+    opacity: 0.45;
+    font-style: italic;
+    pointer-events: none;
+}
+
+[data-theme="dark"] .monaco-ref-hint  { color: #aaaaaa !important; }
+[data-theme="light"] .monaco-ref-hint { color: #888888 !important; }
+
+/* Category color strip decorations (className, isWholeLine) */
+.cat-strip-route,
+.cat-strip-upstream,
+.cat-strip-service,
+.cat-strip-consumer,
+.cat-strip-global_rule,
+.cat-strip-plugin_config,
+.cat-strip-ssl {
+    background: transparent !important;
+    border-left-width: 2px !important;
+    border-left-style: solid !important;
+}
+
+.cat-strip-route         { border-left-color: #3b82f6 !important; }
+.cat-strip-upstream      { border-left-color: #22c55e !important; }
+.cat-strip-service       { border-left-color: #f97316 !important; }
+.cat-strip-consumer      { border-left-color: #8b5cf6 !important; }
+.cat-strip-global_rule   { border-left-color: #ef4444 !important; }
+.cat-strip-plugin_config { border-left-color: #f59e0b !important; }
+.cat-strip-ssl           { border-left-color: #94a3b8 !important; }
