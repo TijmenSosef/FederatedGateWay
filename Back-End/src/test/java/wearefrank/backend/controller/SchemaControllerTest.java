@@ -1,6 +1,5 @@
 package wearefrank.backend.controller;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -8,7 +7,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import wearefrank.backend.service.SchemaService;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -35,13 +33,11 @@ class SchemaControllerTest {
         verify(schemaService).getFullSchema();
     }
 
-    @Disabled("Waiting for PrometheusClient fix")
     @Test
-    void getFullSchema_propagatesException_onServiceFailure() {
+    void getFullSchema_propagatesException_onServiceFailure() throws Exception {
         when(schemaService.getFullSchema()).thenThrow(new RuntimeException("APISIX down"));
 
-        assertThatThrownBy(() -> mockMvc.perform(get("/api/schema")))
-                .hasRootCauseInstanceOf(RuntimeException.class)
-                .hasRootCauseMessage("APISIX down");
+        mockMvc.perform(get("/api/schema"))
+                .andExpect(status().isBadGateway());
     }
 }

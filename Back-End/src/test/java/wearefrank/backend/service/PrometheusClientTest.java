@@ -1,10 +1,10 @@
 package wearefrank.backend.service;
 
-import org.junit.jupiter.api.Disabled;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -20,7 +20,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
-@Disabled("Waiting for baseUrl Spring @Value injection fix with manual setup")
 @ExtendWith(MockitoExtension.class)
 class PrometheusClientTest {
 
@@ -31,8 +30,15 @@ class PrometheusClientTest {
     @Mock
     HttpResponse<String> httpResponse;
 
-    @InjectMocks
+    @Mock
+    ObjectMapper objectMapper;
+
     PrometheusClient prometheusClient;
+
+    @BeforeEach
+    void setUp() {
+        prometheusClient = new PrometheusClient("http://localhost:9090", httpClient, objectMapper);
+    }
 
     @Test
     void query_returnsBody_on200() throws Exception {

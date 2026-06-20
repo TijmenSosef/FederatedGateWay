@@ -224,10 +224,10 @@ export const Dashboard: React.FC = () => {
                     {liveRoutesFetch.loading && <div className={`text-small text-muted ${styles.emptyHint}`}>Loading...</div>}
                     {/* Unavailable */}
                     {liveRoutesFetch.error && <div className={`text-small text-muted ${styles.emptyHint}`}>Unavailable</div>}
-                    {liveRoutesFetch.data && liveRoutesFetch.data.length === 0 && (
+                    {Array.isArray(liveRoutesFetch.data) && liveRoutesFetch.data.length === 0 && (
                         <div>No routes loaded</div>
                     )}
-                    {liveRoutesFetch.data?.map(r => (
+                    {Array.isArray(liveRoutesFetch.data) && liveRoutesFetch.data.map(r => (
                         <div key={r.key} className={styles.statsList}>
                             <div className={styles.statRow}>
                                 <span>
@@ -244,10 +244,10 @@ export const Dashboard: React.FC = () => {
                     <div className="card-header">Live Upstreams</div> {/* Card title */}
                     {liveUpstreamsFetch.loading && <div className={`text-small text-muted ${styles.emptyHint}`}>Loading...</div>}
                     {liveUpstreamsFetch.error && <div className={`text-small text-muted ${styles.emptyHint}`}>Unavailable</div>}
-                    {liveUpstreamsFetch.data && liveUpstreamsFetch.data.length === 0 && (
+                    {Array.isArray(liveUpstreamsFetch.data) && liveUpstreamsFetch.data.length === 0 && (
                         <div className={`text-small text-muted ${styles.emptyHint}`}>No upstreams loaded</div>
                     )}
-                    {liveUpstreamsFetch.data?.map(u => (
+                    {Array.isArray(liveUpstreamsFetch.data) && liveUpstreamsFetch.data.map(u => (
                         <div key={u.key} className={styles.statsList}>
                             <div className={styles.statRow}>
                                 <strong>Upstream {u.value.id}</strong>
